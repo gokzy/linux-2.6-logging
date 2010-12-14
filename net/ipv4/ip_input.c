@@ -144,6 +144,7 @@
 #include <net/xfrm.h>
 #include <linux/mroute.h>
 #include <linux/netlink.h>
+#include <linux/net_stack_logger.h>
 
 /*
  *	Process Router Attention IP option (RFC 2113)
@@ -376,6 +377,9 @@ int ip_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt, 
 {
 	struct iphdr *iph;
 	u32 len;
+
+	// logging net stack
+	logging_net_stack(NSL_IP_RCV, smp_processor_id(), skb);
 
 	/* When the interface is in promisc. mode, drop all the crap
 	 * that it receives, do not try to analyse it.

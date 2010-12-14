@@ -135,6 +135,8 @@
 
 #include "net-sysfs.h"
 
+#include <linux/net_stack_logger.h>
+
 /* Instead of increasing this, you should create a hash table. */
 #define MAX_GRO_SKBS 8
 
@@ -2898,6 +2900,7 @@ static int __netif_receive_skb(struct sk_buff *skb)
 	int ret = NET_RX_DROP;
 	__be16 type;
 
+
 	if (!netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
 
@@ -3043,6 +3046,10 @@ out:
  */
 int netif_receive_skb(struct sk_buff *skb)
 {
+
+	// logging function
+	logging_net_stack(NSL_NETIF_RECEIVE_SKB, smp_processor_id(), skb);
+
 	if (netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
 

@@ -107,6 +107,8 @@
 #include <net/xfrm.h>
 #include "udp_impl.h"
 
+#include <linux/net_stack_logger.h>
+
 struct udp_table udp_table __read_mostly;
 EXPORT_SYMBOL(udp_table);
 
@@ -1665,6 +1667,8 @@ drop:
 
 int udp_rcv(struct sk_buff *skb)
 {
+	// logging net stack
+	logging_net_stack(NSL_UDP_RCV, smp_processor_id(), skb);
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 
