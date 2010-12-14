@@ -4,9 +4,13 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/utsname.h>
+#include <linux/net_stack_logger.h>
+
 
 static int version_proc_show(struct seq_file *m, void *v)
 {
+	debug_print_nsl_table();
+  
 	seq_printf(m, linux_proc_banner,
 		utsname()->sysname,
 		utsname()->release,
