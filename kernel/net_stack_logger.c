@@ -4,6 +4,13 @@
 #include <linux/kernel.h>
 #include <linux/net_stack_logger.h>
 
+#define MAC_HEADER_LEN 14
+
+// protocol 
+#define IPv4 0x8
+#define TCP  0x6
+#define UDP  0x11
+
 static atomic_t atomic_index = ATOMIC_INIT(0);
 
 static struct net_stack_log nsl_table[1000];
@@ -11,18 +18,21 @@ static struct net_stack_log nsl_table[1000];
 inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
 {
 	struct iphdr *ip;
-	struct transport_port *tp_port;
 	u32 ihl;
+	struct transport_port *tp_port;
+	unsigned int mhdr;
 	int index;
+	
+	mhdr = skb->mac_header + MAC_HEADER_LEN;
 
-	ip = (struct iphdr *) skb->data;
+	ip = (struct iphdr *)((char *)skb->head + mhdr);
 
 	ihl = ip->ihl;
-	tp_port = (struct transport_port *)(skb->data + (ihl * 4));
+	tp_port = (struct transport_port *)((char *)skb->head + mhdr +(ihl * 4));
 
 	index = atomic_read(&atomic_index);
 
-	if(index < 1000){
+	if(index < 1000 && skb->protocol == IPv4 && (ip->protocol == TCP || ip->protocol == UDP)){
 		nsl_table[index].func         = func;
 		nsl_table[index].cpu          = cpu;
 		nsl_table[index].eth_protocol = skb->protocol;
