@@ -39,7 +39,7 @@ u8					hpet_msi_disable;
 #ifdef CONFIG_PCI_MSI
 static unsigned long			hpet_num_timers;
 #endif
-static void __iomem			*hpet_virt_address;
+void __iomem			*hpet_virt_address;
 
 struct hpet_dev {
 	struct clock_event_device	evt;
@@ -50,10 +50,6 @@ struct hpet_dev {
 	char				name[10];
 };
 
-inline unsigned int get_hpet_counter(void)
-{
-	return readq(hpet_virt_address + HPET_COUNTER);
-}
 
 inline unsigned int hpet_readl(unsigned int a)
 {
