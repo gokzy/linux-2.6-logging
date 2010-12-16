@@ -1,21 +1,21 @@
-#include <asm/atomic.h>
-#include <linux/ip.h>
-#include <net/ip.h>
-#include <linux/kernel.h>
 #include <linux/net_stack_logger.h>
-
-#define MAC_HEADER_LEN 14
+#include <linux/ip.h>
+#include <asm/atomic.h>
+#include <net/ip.h>
 
 // protocol 
 #define IPv4 0x8
 #define TCP  0x6
 #define UDP  0x11
 
-static atomic_t atomic_index = ATOMIC_INIT(0);
+#define MAC_HEADER_LEN 14
 
+
+static atomic_t atomic_index = ATOMIC_INIT(0);
 static struct net_stack_log nsl_table[1000];
 
-inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
+
+void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
 {
 	struct iphdr *ip;
 	u32 ihl;
@@ -32,7 +32,8 @@ inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
 
 	index = atomic_read(&atomic_index);
 
-	if(index < 1000 && skb->protocol == IPv4 && (ip->protocol == TCP || ip->protocol == UDP)){
+//	if(index < 1000 && skb->protocol == IPv4 && (ip->protocol == TCP || ip->protocol == UDP)){
+	if(index < 1000){
 		nsl_table[index].func         = func;
 		nsl_table[index].cpu          = cpu;
 		nsl_table[index].eth_protocol = skb->protocol;
@@ -54,7 +55,7 @@ void debug_print_nsl_table(void)
   int i=0;
   int index = atomic_read(&atomic_index);
 
-  printk(KERN_INFO "[udp_rcv] print_log\n");
+  printk(KERN_INFO "[udp_rcv %d] print_log\n",index);
 
   for(i=0; i<index; i++){
     printk(KERN_INFO 
