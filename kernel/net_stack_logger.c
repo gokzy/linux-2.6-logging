@@ -1,7 +1,4 @@
 #include <linux/net_stack_logger.h>
-#include <linux/ip.h>
-#include <asm/atomic.h>
-#include <net/ip.h>
 #include <linux/compat.h>
 
 static int nsl_init_module(void);
@@ -24,52 +21,8 @@ static const struct file_operations nsl_fops = {
 module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
-// protocol 
-#define IPv4 0x8
-#define TCP  0x6
-#define UDP  0x11
-
-#define MAC_HEADER_LEN 14
-
-
-static atomic_t atomic_index = ATOMIC_INIT(0);
-static struct net_stack_log nsl_table[1000];
-
-
-void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
-{
-	struct iphdr *ip;
-	u32 ihl;
-	struct transport_port *tp_port;
-	unsigned int mhdr;
-	int index;
-	
-	mhdr = skb->mac_header + MAC_HEADER_LEN;
-
-	ip = (struct iphdr *)((char *)skb->head + mhdr);
-
-	ihl = ip->ihl;
-	tp_port = (struct transport_port *)((char *)skb->head + mhdr +(ihl * 4));
-
-	index = atomic_read(&atomic_index);
-
-//	if(index < 1000 && skb->protocol == IPv4 && (ip->protocol == TCP || ip->protocol == UDP)){
-	if(index < 1000){
-		nsl_table[index].func         = func;
-		nsl_table[index].cpu          = cpu;
-		nsl_table[index].eth_protocol = skb->protocol;
-		nsl_table[index].ip_protocol  = ip->protocol;
-		nsl_table[index].ip_saddr     = ip->saddr;
-		nsl_table[index].ip_daddr     = ip->daddr;
-		nsl_table[index].tp_sport     = tp_port->sport;
-		nsl_table[index].tp_dport     = tp_port->dport;
-		nsl_table[index].time         = get_hpet_counter();
-
-		atomic_inc(&atomic_index);
-	}
-
-}
-
+struct net_stack_log nsl_table[1000];
+atomic_t atomic_index = ATOMIC_INIT(0);
 
 void debug_print_nsl_table(void)
 {
