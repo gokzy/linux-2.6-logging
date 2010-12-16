@@ -50,7 +50,7 @@ struct hpet_dev {
 	char				name[10];
 };
 
-unsigned int get_hpet_counter(void)
+inline unsigned int get_hpet_counter(void)
 {
 	return readq(hpet_virt_address + HPET_COUNTER);
 }
