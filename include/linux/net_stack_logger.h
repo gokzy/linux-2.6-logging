@@ -1,11 +1,26 @@
 #include <linux/types.h>
+#include <linux/kernel.h>
+#include <linux/hpet.h>
+#include <linux/io.h>
 #include <linux/skbuff.h>
 
-// NSL : net stack log
+#include <asm/hpet.h>
+
+// NSL : net stack log 
+// func ID
 #define NSL_NET_RX_ACTION     0
 #define NSL_NETIF_RECEIVE_SKB 1
 #define NSL_IP_RCV            2
 #define NSL_UDP_RCV           3
+#define NSL_UDP_RECVMSG       4
+
+// protocol 
+#define IPv4 0x8
+#define TCP  0x6
+#define UDP  0x11
+
+#define MAC_HEADER_LEN 14
+
 
 struct transport_port{
 	u16 sport;
@@ -24,9 +39,16 @@ struct net_stack_log{
 	unsigned long long int time;
 };
 
-/* hpet counter */
-inline unsigned long long int get_hpet_counter(void);
 
-inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb);
+
+/* hpet counter */
+extern void __iomem *hpet_virt_address;
+static inline unsigned long long int get_hpet_counter(void)
+{
+	return readq(hpet_virt_address + HPET_COUNTER);
+}
+
+void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb);
+
 void debug_print_nsl_table(void);
 
