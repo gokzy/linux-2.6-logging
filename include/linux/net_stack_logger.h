@@ -13,7 +13,9 @@
 #define NSL_MAJOR 261
 
 #define NSL_GET_INDEX _IO(NSL_MAJOR, 0)
-#define NSL_GET_TABLE _IOWR(NSL_MAJOR, 1, void *)
+#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
+
+#define NSL_LOG_SIZE 1048576
 
 // NSL : net stack log 
 // func ID
@@ -30,12 +32,12 @@
 
 #define MAC_HEADER_LEN 14
 
-struct transport_port{
+struct transport_port {
 	uint16_t sport;
 	uint16_t dport;
 };
 
-struct net_stack_log{
+struct net_stack_log {
 	uint32_t func;
 	uint32_t cpu;
 	uint16_t eth_protocol;
@@ -47,36 +49,24 @@ struct net_stack_log{
 	uint64_t time;
 };
 
-extern struct net_stack_log nsl_table[1000];
+extern struct net_stack_log nsl_table[];
 extern atomic_t atomic_index;
-
-/* hpet counter */
 extern void __iomem *hpet_virt_address;
-static inline unsigned long long int get_hpet_counter(void)
-{
-	return readq(hpet_virt_address + HPET_COUNTER);
-}
 
 static inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
 {
-
-	struct iphdr *ip;
-	u32 ihl;
-	struct transport_port *tp_port;
-	unsigned int mhdr;
 	int index;
+
+	if ((index = atomic_inc_return(&atomic_index)) < NSL_LOG_SIZE) {
+		struct iphdr *ip;
+		struct transport_port *tp_port;
+		unsigned int mhdr;
 	
-	mhdr = skb->mac_header + MAC_HEADER_LEN;
+		mhdr = skb->mac_header + MAC_HEADER_LEN;
+		ip = (struct iphdr *)((char *)skb->head + mhdr);
+		tp_port = (struct transport_port *)
+			((char *)skb->head + mhdr + (ip->ihl * 4));
 
-	ip = (struct iphdr *)((char *)skb->head + mhdr);
-
-	ihl = ip->ihl;
-	tp_port = (struct transport_port *)((char *)skb->head + mhdr +(ihl * 4));
-
-	index = atomic_inc_return(&atomic_index);
-
-/* //	if(index < 1000 &&　(ip->protocol == TCP || ip->protocol == UDP)){ */
-	if(index < 1000){
 		nsl_table[index].func         = func;
 		nsl_table[index].cpu          = cpu;
 		nsl_table[index].eth_protocol = skb->protocol;
@@ -85,10 +75,7 @@ static inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff 
 		nsl_table[index].ip_daddr     = ip->daddr;
 		nsl_table[index].tp_sport     = tp_port->sport;
 		nsl_table[index].tp_dport     = tp_port->dport;
-		nsl_table[index].time         = get_hpet_counter();
+		nsl_table[index].time         = 
+			readq(hpet_virt_address + HPET_COUNTER);
 	}
-
 }
-
-void debug_print_nsl_table(void);
-

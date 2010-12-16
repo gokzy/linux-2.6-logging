@@ -8,10 +8,13 @@
 
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
-#define NSL_GET_INDEX _IO(NSL_MAJOR, 0)
-#define NSL_GET_TABLE _IOWR(NSL_MAJOR, 1, void *)
 
-struct net_stack_log{
+#define NSL_GET_INDEX _IO(NSL_MAJOR, 0)
+#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
+
+#define NSL_LOG_SIZE 1048576
+
+struct net_stack_log {
 	uint32_t func;
 	uint32_t cpu;
 	uint16_t eth_protocol;
@@ -23,11 +26,12 @@ struct net_stack_log{
 	uint64_t time;
 };
 
+struct net_stack_log nsl_table[NSL_LOG_SIZE];
+
 void usage(void)
 {
 	printf("usage: nsl [start|get|stop]\n");
 }
-
 
 int main(int argc, char **argv)
 {
@@ -44,7 +48,6 @@ int main(int argc, char **argv)
 		return -1;
 	}else if (!strcmp(argv[1], "get")) {
 		int fd, index, i, ret;
-		struct net_stack_log *log;
 
 		fd = open("/dev/"NSL_DEV_NAME, 0);
 		if(fd < 0) {
@@ -55,16 +58,7 @@ int main(int argc, char **argv)
 		index = ioctl(fd, NSL_GET_INDEX);
 		printf("NSL_GET_INDEX: %d\n", index);
 
-		log = (struct net_stack_log *)malloc(
-			index * sizeof(struct net_stack_log));
-		if(!log) {
-			fprintf(stderr, "malloc failed\n");
-			return -1;
-		}
-		*(unsigned int *)log =
-			(unsigned int)(index * sizeof(struct net_stack_log));
-		printf("size:%u\n", *(unsigned int *)log);
-		ret = ioctl(fd, NSL_GET_TABLE, (void *)log);
+		ret = ioctl(fd, NSL_GET_TABLE, (void *)nsl_table);
 		if (ret) {
 			fprintf(stderr, "ioctl failed %d\n", ret);
 			return -1;
@@ -75,19 +69,18 @@ int main(int argc, char **argv)
 			char addr[INET_ADDRSTRLEN];
 			
 			printf("[%d] func:%d cpu:%d eth_protocol:%d ip_protocol:%d ",
-			       i, log[i].func, log[i].cpu, log[i].eth_protocol, 
-			       log[i].ip_protocol);
+			       i, nsl_table[i].func, nsl_table[i].cpu, nsl_table[i].eth_protocol, 
+			       nsl_table[i].ip_protocol);
 			printf("ip_saddr:%s ",
-			       inet_ntop(AF_INET, &log[i].ip_saddr, addr, 
+			       inet_ntop(AF_INET, &nsl_table[i].ip_saddr, addr, 
 					 INET_ADDRSTRLEN));
 			printf("ip_daddr:%s ",
-			       inet_ntop(AF_INET, &log[i].ip_daddr, addr, 
+			       inet_ntop(AF_INET, &nsl_table[i].ip_daddr, addr, 
 					 INET_ADDRSTRLEN));
 			printf("tp_sport:%d tp_dport:%d time:%llu\n",
-			       log[i].tp_sport, log[i].tp_dport, log[i].time);
+			       nsl_table[i].tp_sport, nsl_table[i].tp_dport, nsl_table[i].time);
 		}
 
-		free(log);
 		close(fd);
 
 		return 0;

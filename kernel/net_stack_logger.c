@@ -21,24 +21,8 @@ static const struct file_operations nsl_fops = {
 module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
-struct net_stack_log nsl_table[1000];
-atomic_t atomic_index = ATOMIC_INIT(0);
-
-void debug_print_nsl_table(void)
-{
-  int i=0;
-  int index = atomic_read(&atomic_index);
-
-  printk(KERN_INFO "[udp_rcv %d] print_log\n",index);
-
-  for(i=0; i<index; i++){
-    printk(KERN_INFO 
-	   "tb[%d] func:%u cpu:%d eth_proto:%x ip_proto:%x saddr:%x daddr:%x sport:%x dport:%x time:%llx\n"
-	   ,i, nsl_table[i].func, nsl_table[i].cpu, nsl_table[i].eth_protocol, nsl_table[i].ip_protocol, 
-	   nsl_table[i].ip_saddr, nsl_table[i].ip_daddr, nsl_table[i].tp_sport, nsl_table[i].tp_dport, nsl_table[i].time);
-  }
-
-}
+struct net_stack_log nsl_table[NSL_LOG_SIZE];
+atomic_t atomic_index = ATOMIC_INIT(-1);
 
 static int __init nsl_init_module(void)
 {
@@ -57,15 +41,11 @@ static void nsl_cleanup_module(void)
 
 static int nsl_open(struct inode *inode, struct file *file)
 {
-	try_module_get(THIS_MODULE);
-
 	return 0;
 }
 
 static int nsl_release(struct inode *inode, struct file *file)
 {
-	module_put(THIS_MODULE);
-
 	return 0;
 }
 
@@ -90,15 +70,12 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case NSL_GET_INDEX:
 		ret = atomic_read(&atomic_index);
+		if (ret >= NSL_LOG_SIZE)
+			ret = NSL_LOG_SIZE - 1;
 		break;
 	case NSL_GET_TABLE:
-		if ((ret = copy_from_user(&size, argp, sizeof(unsigned int)))) {
-			printk("copy_from_user failed\n");
-			return -EFAULT;
-		}
-		printk("size: %u\n", size);
-		if ((ret = copy_to_user(argp, nsl_table, size))) {
-			printk("copy_to_user failed\n");
+		if ((ret = copy_to_user(argp, nsl_table, sizeof(nsl_table)))) {
+			printk("copy_to_user failed: %d\n", ret);
 			return -EFAULT;
 		}
 		break;

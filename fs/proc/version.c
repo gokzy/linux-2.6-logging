@@ -9,8 +9,6 @@
 
 static int version_proc_show(struct seq_file *m, void *v)
 {
-	debug_print_nsl_table();
-  
 	seq_printf(m, linux_proc_banner,
 		utsname()->sysname,
 		utsname()->release,
