@@ -3,8 +3,14 @@
 #include <linux/hpet.h>
 #include <linux/io.h>
 #include <linux/skbuff.h>
-
+#include <linux/ioctl.h>
 #include <asm/hpet.h>
+
+#define NSL_DEV_NAME "nsl"
+#define NSL_MAJOR 261
+
+#define NSL_GET_INDEX _IO(NSL_MAJOR, 0)
+#define NSL_GET_TABLE _IOWR(NSL_MAJOR, 1, void *)
 
 // NSL : net stack log 
 // func ID

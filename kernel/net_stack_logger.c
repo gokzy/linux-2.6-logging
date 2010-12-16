@@ -2,6 +2,27 @@
 #include <linux/ip.h>
 #include <asm/atomic.h>
 #include <net/ip.h>
+#include <linux/compat.h>
+
+static int nsl_init_module(void);
+static void nsl_cleanup_module(void);
+static int nsl_open(struct inode *, struct file *);
+static int nsl_release(struct inode *, struct file *);
+static ssize_t nsl_read(struct file *, char __user *, size_t, loff_t *);
+static ssize_t nsl_write(struct file *, const char __user *, size_t, loff_t *);
+static long nsl_ioctl(struct file *, unsigned int, unsigned long);
+
+static const struct file_operations nsl_fops = {
+	.owner		= THIS_MODULE,
+	.open		= nsl_open,
+	.release	= nsl_release,
+	.read		= nsl_read,
+	.write		= nsl_write,
+	.unlocked_ioctl	= nsl_ioctl,
+};
+
+module_init(nsl_init_module);
+module_exit(nsl_cleanup_module);
 
 // protocol 
 #define IPv4 0x8
@@ -65,3 +86,66 @@ void debug_print_nsl_table(void)
   }
 
 }
+
+static int __init nsl_init_module(void)
+{
+	if (register_chrdev(NSL_MAJOR, NSL_DEV_NAME, &nsl_fops)) {
+		printk(KERN_ERR "nsl: unable to get major\n");
+		return -EIO;
+	}
+
+	return 0;
+}
+
+static void nsl_cleanup_module(void)
+{
+	unregister_chrdev(NSL_MAJOR, NSL_DEV_NAME);
+}
+
+static int nsl_open(struct inode *inode, struct file *file)
+{
+	try_module_get(THIS_MODULE);
+
+	return 0;
+}
+
+static int nsl_release(struct inode *inode, struct file *file)
+{
+	module_put(THIS_MODULE);
+
+	return 0;
+}
+
+static ssize_t nsl_read(struct file *file, char __user *buf, size_t len, 
+			loff_t *off)
+{
+	return -EINVAL;
+}
+
+static ssize_t nsl_write(struct file *file, const char __user *buf, 
+			 size_t len, loff_t *off)
+{
+	return -EINVAL;
+}
+
+static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	int ret = 0, size;
+	char __user *argp = compat_ptr(arg);
+
+	switch (cmd) {
+	case NSL_GET_INDEX:
+		ret = atomic_read(&atomic_index);
+		break;
+	case NSL_GET_TABLE:
+		get_user(size, argp);
+		if ((ret = copy_to_user(argp, nsl_table, size)))
+			return -EFAULT;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return ret;
+}
+
