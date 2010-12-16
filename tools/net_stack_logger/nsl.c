@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "stop not implemented yet\n");
 		return -1;
 	}else if (!strcmp(argv[1], "get")) {
-		int fd, index, i;
+		int fd, index, i, ret;
 		struct net_stack_log *log;
 
 		fd = open("/dev/"NSL_DEV_NAME, 0);
@@ -60,9 +60,15 @@ int main(int argc, char **argv)
 			fprintf(stderr, "malloc failed\n");
 			return -1;
 		}
-		*(int *)log = index;
-		index = ioctl(fd, NSL_GET_TABLE, (void *)log);
-		printf("NSL_GET_TABLE: %d\n", index);
+		*(unsigned int *)log =
+			(unsigned int)(index * sizeof(struct net_stack_log));
+		printf("size:%u\n", *(unsigned int *)log);
+		ret = ioctl(fd, NSL_GET_TABLE, (void *)log);
+		if (ret) {
+			fprintf(stderr, "ioctl failed %d\n", ret);
+			return -1;
+		}
+		printf("NSL_GET_TABLE:\n");
 		
 		for (i = 0; i < index; i++) {
 			printf("[%d] func:%d cpu:%d eth_protocol:%d ip_protocol:%d ip_saddr:%x ip_daddr:%x tp_sport:%d tp_dport:%d time:%x\n",

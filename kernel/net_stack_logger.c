@@ -83,7 +83,8 @@ static ssize_t nsl_write(struct file *file, const char __user *buf,
 
 static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int ret = 0, size;
+	int ret = 0;
+	unsigned int size;
 	char __user *argp = compat_ptr(arg);
 
 	switch (cmd) {
@@ -91,7 +92,8 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		ret = atomic_read(&atomic_index);
 		break;
 	case NSL_GET_TABLE:
-		get_user(size, argp);
+		if ((ret = copy_from_user(&size, argp, sizeof(unsigned int))))
+			return -EFAULT;
 		if ((ret = copy_to_user(argp, nsl_table, size)))
 			return -EFAULT;
 		break;
@@ -101,4 +103,3 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 	return ret;
 }
-
