@@ -15,7 +15,7 @@ static atomic_t atomic_index = ATOMIC_INIT(0);
 
 static struct net_stack_log nsl_table[1000];
 
-inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
+void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb)
 {
 	struct iphdr *ip;
 	u32 ihl;

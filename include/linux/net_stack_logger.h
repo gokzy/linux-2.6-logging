@@ -25,8 +25,7 @@ struct net_stack_log{
 };
 
 /* hpet counter */
-inline unsigned long long int get_hpet_counter(void);
+unsigned long long int get_hpet_counter(void);
 
-inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb);
+void logging_net_stack(unsigned int func, int cpu, struct sk_buff *skb);
 void debug_print_nsl_table(void);
-
