@@ -13,7 +13,10 @@
 #define NSL_MAJOR 261
 
 #define NSL_GET_INDEX _IO(NSL_MAJOR, 0)
-#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
+#define NSL_RESET_INDEX _IO(NSL_MAJOR, 1)
+#define NSL_GET_TABLE _IOW(NSL_MAJOR, 2, void *)
+#define NSL_ENABLE _IO(NSL_MAJOR, 3)
+#define NSL_DISABLE _IO(NSL_MAJOR, 4)
 
 #define NSL_LOG_SIZE 1048576
 
@@ -49,6 +52,7 @@ struct net_stack_log {
 	uint64_t time;
 };
 
+extern int nsl_enable;
 extern struct net_stack_log nsl_table[];
 extern atomic_t atomic_index;
 extern void __iomem *hpet_virt_address;
@@ -57,7 +61,8 @@ static inline void logging_net_stack(unsigned int func, int cpu, struct sk_buff 
 {
 	int index;
 
-	if ((index = atomic_inc_return(&atomic_index)) < NSL_LOG_SIZE) {
+	if (nsl_enable &&
+	    (index = atomic_inc_return(&atomic_index)) < NSL_LOG_SIZE) {
 		struct iphdr *ip;
 		struct transport_port *tp_port;
 		unsigned int mhdr;

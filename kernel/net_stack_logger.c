@@ -21,6 +21,7 @@ static const struct file_operations nsl_fops = {
 module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
+int nsl_enable = 0;
 struct net_stack_log nsl_table[NSL_LOG_SIZE];
 atomic_t atomic_index = ATOMIC_INIT(-1);
 
@@ -64,7 +65,6 @@ static ssize_t nsl_write(struct file *file, const char __user *buf,
 static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
-	unsigned int size;
 	char __user *argp = compat_ptr(arg);
 
 	switch (cmd) {
@@ -73,11 +73,20 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (ret >= NSL_LOG_SIZE)
 			ret = NSL_LOG_SIZE - 1;
 		break;
+	case NSL_RESET_INDEX:
+		atomic_set(&atomic_index, -1);
+		break;
 	case NSL_GET_TABLE:
 		if ((ret = copy_to_user(argp, nsl_table, sizeof(nsl_table)))) {
 			printk("copy_to_user failed: %d\n", ret);
 			return -EFAULT;
 		}
+		break;
+	case NSL_ENABLE:
+		nsl_enable = 1;
+		break;
+	case NSL_DISABLE:
+		nsl_enable = 0;
 		break;
 	default:
 		return -EINVAL;
