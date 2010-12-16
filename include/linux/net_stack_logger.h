@@ -31,20 +31,20 @@
 #define MAC_HEADER_LEN 14
 
 struct transport_port{
-	u16 sport;
-	u16 dport;
+	uint16_t sport;
+	uint16_t dport;
 };
 
 struct net_stack_log{
-	unsigned int func;
-	int cpu;
-	u16 eth_protocol;
-	u8  ip_protocol;
-	u32 ip_saddr;
-	u32 ip_daddr;
-	u16 tp_sport;
-	u16 tp_dport;
-	unsigned long long int time;
+	uint32_t func;
+	uint32_t cpu;
+	uint16_t eth_protocol;
+	uint8_t  ip_protocol;
+	uint32_t ip_saddr;
+	uint32_t ip_daddr;
+	uint16_t tp_sport;
+	uint16_t tp_dport;
+	uint64_t time;
 };
 
 extern struct net_stack_log nsl_table[1000];
