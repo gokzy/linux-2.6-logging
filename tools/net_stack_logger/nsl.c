@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
@@ -71,8 +72,19 @@ int main(int argc, char **argv)
 		printf("NSL_GET_TABLE:\n");
 		
 		for (i = 0; i < index; i++) {
-			printf("[%d] func:%d cpu:%d eth_protocol:%d ip_protocol:%d ip_saddr:%x ip_daddr:%x tp_sport:%d tp_dport:%d time:%x\n",
-			       i, log[i].func, log[i].cpu, log[i].eth_protocol, log[i].ip_protocol, log[i].ip_saddr, log[i].ip_daddr, log[i].tp_sport, log[i].tp_dport, log[i].time);
+			char addr[INET_ADDRSTRLEN];
+			
+			printf("[%d] func:%d cpu:%d eth_protocol:%d ip_protocol:%d ",
+			       i, log[i].func, log[i].cpu, log[i].eth_protocol, 
+			       log[i].ip_protocol);
+			printf("ip_saddr:%s ",
+			       inet_ntop(AF_INET, &log[i].ip_saddr, addr, 
+					 INET_ADDRSTRLEN));
+			printf("ip_daddr:%s ",
+			       inet_ntop(AF_INET, &log[i].ip_daddr, addr, 
+					 INET_ADDRSTRLEN));
+			printf("tp_sport:%d tp_dport:%d time:%llu\n",
+			       log[i].tp_sport, log[i].tp_dport, log[i].time);
 		}
 
 		free(log);

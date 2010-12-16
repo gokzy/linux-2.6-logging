@@ -92,10 +92,15 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		ret = atomic_read(&atomic_index);
 		break;
 	case NSL_GET_TABLE:
-		if ((ret = copy_from_user(&size, argp, sizeof(unsigned int))))
+		if ((ret = copy_from_user(&size, argp, sizeof(unsigned int)))) {
+			printk("copy_from_user failed\n");
 			return -EFAULT;
-		if ((ret = copy_to_user(argp, nsl_table, size)))
+		}
+		printk("size: %u\n", size);
+		if ((ret = copy_to_user(argp, nsl_table, size))) {
+			printk("copy_to_user failed\n");
 			return -EFAULT;
+		}
 		break;
 	default:
 		return -EINVAL;
