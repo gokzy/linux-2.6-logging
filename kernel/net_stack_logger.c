@@ -22,9 +22,8 @@ module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
 int nsl_enable = 0;
-static struct net_stack_log _nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
-struct net_stack_log **nsl_table = (struct net_stack_log **)_nsl_table;
-atomic_t nsl_index[NSL_MAX_CPU] = {ATOMIC_INIT(-1),};
+struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+atomic_t nsl_index[NSL_MAX_CPU];
 
 static int __init nsl_init_module(void)
 {

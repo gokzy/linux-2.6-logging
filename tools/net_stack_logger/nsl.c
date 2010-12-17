@@ -44,9 +44,9 @@ int main(int argc, char **argv)
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		int fd = open("/dev/"NSL_DEV_NAME, 0);
+		int fd = open(NSL_DEV_NAME, 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open /dev/"NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
 			return -1;
 		}
 		ioctl(fd, NSL_ENABLE);
@@ -54,9 +54,9 @@ int main(int argc, char **argv)
 
 		return 0;
 	}else if (!strcmp(argv[1], "stop")) {
-		int fd = open("/dev/"NSL_DEV_NAME, 0);
+		int fd = open(NSL_DEV_NAME, 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open /dev/"NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
 			return -1;
 		}
 		ioctl(fd, NSL_DISABLE);
@@ -67,9 +67,9 @@ int main(int argc, char **argv)
 		int fd, index, i, j, ret;
 		char addr[INET_ADDRSTRLEN];
 
-		fd = open("/dev/"NSL_DEV_NAME, 0);
+		fd = open(NSL_DEV_NAME, 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open /dev/"NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
 			return -1;
 		}
 
@@ -82,6 +82,8 @@ int main(int argc, char **argv)
 		
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			for (j = 0; j < NSL_LOG_SIZE; j++) {
+				if (!nsl_table[i][j].func)
+					break;
 				printf("cpu:%d ", i);
 				printf("seq:%d ", j);
 				printf("func:%d ", nsl_table[i][j].func);

@@ -52,7 +52,7 @@ struct net_stack_log {
 };
 
 extern int nsl_enable;
-extern struct net_stack_log **nsl_table;
+extern struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 extern atomic_t nsl_index[];
 extern void __iomem *hpet_virt_address;
 
@@ -66,7 +66,7 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 		struct iphdr *ip;
 		struct transport_port *tp_port;
 		unsigned int mhdr;
-	
+
 		mhdr = skb->mac_header + MAC_HEADER_LEN;
 		ip = (struct iphdr *)((char *)skb->head + mhdr);
 		tp_port = (struct transport_port *)
