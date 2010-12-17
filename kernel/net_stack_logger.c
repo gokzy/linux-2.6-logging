@@ -22,29 +22,12 @@ module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
 int nsl_enable = 0;
-struct net_stack_log **nsl_table;
+static struct net_stack_log _nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+struct net_stack_log **nsl_table = (struct net_stack_log **)_nsl_table;
 atomic_t nsl_index[NSL_MAX_CPU] = {ATOMIC_INIT(-1),};
 
 static int __init nsl_init_module(void)
 {
-	int i;
-
-	nsl_table = (struct netstack_log **)kmalloc(
-		sizeof(struct net_stack_log *) * NSL_MAX_CPU, GFP_KERNEL);
-	if (!nsl_table) {
-		printk("nsl: kmalloc failed\n");
-		return -ENOMEM;
-	}
-	for (i = 0; i < NSL_MAX_CPU; i++) {
-		nsl_table[i] = (struct net_stack_log *)kmalloc(
-			sizeof(struct net_stack_log) * NSL_LOG_SIZE,
-			GFP_KERNEL);
-		if (!nsl_table[i]) {
-			printk("nsl: kmalloc failed\n");
-			return -ENOMEM;
-		}
-	}
-		
 	if (register_chrdev(NSL_MAJOR, NSL_DEV_NAME, &nsl_fops)) {
 		printk(KERN_ERR "nsl: unable to get major\n");
 		return -EIO;
