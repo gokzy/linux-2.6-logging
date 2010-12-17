@@ -26,6 +26,10 @@
 #define NSL_IP_RCV            3
 #define NSL_UDP_RCV           4
 #define NSL_UDP_RECVMSG       5
+#define NSL_TCP_RCV_ESTABLISHED 6
+#define NSL_TCP_PREQUEUE_PROCESS 7
+#define NSL_TCP_RECVMSG_COPIED 8
+#define NSL_TCP_RECVMSG_OUT 9
 
 // protocol 
 #define IPv4 0x8
@@ -63,22 +67,24 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 
 	if (nsl_enable &&
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
-		struct iphdr *ip;
-		struct transport_port *tp_port;
+		struct iphdr *ip = NULL;
+		struct transport_port *tp_port = NULL;
 		unsigned int mhdr;
 
-		mhdr = skb->mac_header + MAC_HEADER_LEN;
-		ip = (struct iphdr *)((char *)skb->head + mhdr);
-		tp_port = (struct transport_port *)
-			((char *)skb->head + mhdr + (ip->ihl * 4));
+		if (skb && skb->head) {
+			mhdr = skb->mac_header + MAC_HEADER_LEN;
+			ip = (struct iphdr *)((char *)skb->head + mhdr);
+			tp_port = (struct transport_port *)
+				((char *)skb->head + mhdr + (ip->ihl * 4));
+		}
 
 		nsl_table[cpu][index].func         = func;
-		nsl_table[cpu][index].eth_protocol = skb->protocol;
-		nsl_table[cpu][index].ip_protocol  = ip->protocol;
-		nsl_table[cpu][index].ip_saddr     = ip->saddr;
-		nsl_table[cpu][index].ip_daddr     = ip->daddr;
-		nsl_table[cpu][index].tp_sport     = tp_port->sport;
-		nsl_table[cpu][index].tp_dport     = tp_port->dport;
+		nsl_table[cpu][index].eth_protocol = skb ? skb->protocol : 0;
+		nsl_table[cpu][index].ip_protocol  = ip ? ip->protocol : 0;
+		nsl_table[cpu][index].ip_saddr     = ip ? ip->saddr : 0;
+		nsl_table[cpu][index].ip_daddr     = ip ? ip->daddr : 0;
+		nsl_table[cpu][index].tp_sport     = tp_port ? tp_port->sport : 0;
+		nsl_table[cpu][index].tp_dport     = tp_port ? tp_port->dport : 0;
 		nsl_table[cpu][index].time         = 
 			readq(hpet_virt_address + HPET_COUNTER);
 		nsl_table[cpu][index].skb         = (uint64_t)skb;

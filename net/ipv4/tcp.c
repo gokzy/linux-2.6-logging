@@ -277,6 +277,8 @@
 #include <asm/uaccess.h>
 #include <asm/ioctls.h>
 
+#include <linux/net_stack_logger.h>
+
 int sysctl_tcp_fin_timeout __read_mostly = TCP_FIN_TIMEOUT;
 
 struct percpu_counter tcp_orphan_count;
@@ -1254,8 +1256,10 @@ static void tcp_prequeue_process(struct sock *sk)
 	/* RX process wants to run with disabled BHs, though it is not
 	 * necessary */
 	local_bh_disable();
-	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL)
+	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
+		logging_net_stack(NSL_TCP_PREQUEUE_PROCESS, skb);
 		sk_backlog_rcv(sk, skb);
+	}
 	local_bh_enable();
 
 	/* Clear memory counter. */
@@ -1771,11 +1775,13 @@ skip_copy:
 
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
+	logging_net_stack(NSL_TCP_RECVMSG_COPIED, skb);
 	return copied;
 
 out:
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
+	logging_net_stack(NSL_TCP_RECVMSG_OUT, skb);
 	return err;
 
 recv_urg:

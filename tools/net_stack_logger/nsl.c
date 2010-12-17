@@ -105,8 +105,10 @@ int main(int argc, char **argv)
 				       ntohs(nsl_table[i][j].tp_sport));
 				printf("tp_dport:%d ",
 				       ntohs(nsl_table[i][j].tp_dport));
-				printf("time:%llu\n",
+				printf("time:%llu ",
 				       nsl_table[i][j].time);
+				printf("skb:%llx\n",
+				       nsl_table[i][j].skb);
 			}
 		}
 		close(fd);

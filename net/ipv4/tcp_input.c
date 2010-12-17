@@ -72,6 +72,7 @@
 #include <linux/ipsec.h>
 #include <asm/unaligned.h>
 #include <net/netdma.h>
+#include <linux/net_stack_logger.h>
 
 int sysctl_tcp_timestamps __read_mostly = 1;
 int sysctl_tcp_window_scaling __read_mostly = 1;
@@ -5395,8 +5396,10 @@ no_ack:
 #endif
 			if (eaten)
 				__kfree_skb(skb);
-			else
+			else {
+				logging_net_stack(NSL_TCP_RCV_ESTABLISHED, skb);
 				sk->sk_data_ready(sk, 0);
+			}
 			return 0;
 		}
 	}
