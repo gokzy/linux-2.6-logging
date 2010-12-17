@@ -3048,7 +3048,7 @@ int netif_receive_skb(struct sk_buff *skb)
 {
 
 	// logging function
-	logging_net_stack(NSL_NETIF_RECEIVE_SKB, smp_processor_id(), skb);
+	logging_net_stack(NSL_NETIF_RECEIVE_SKB, skb);
 
 	if (netdev_tstamp_prequeue)
 		net_timestamp_check(skb);

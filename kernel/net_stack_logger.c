@@ -22,11 +22,29 @@ module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
 int nsl_enable = 0;
-struct net_stack_log nsl_table[NSL_LOG_SIZE];
-atomic_t atomic_index = ATOMIC_INIT(-1);
+struct net_stack_log **nsl_table;
+atomic_t nsl_index[NSL_MAX_CPU] = {ATOMIC_INIT(-1),};
 
 static int __init nsl_init_module(void)
 {
+	int i;
+
+	nsl_table = (struct netstack_log **)kmalloc(
+		sizeof(struct net_stack_log *) * NSL_MAX_CPU, GFP_KERNEL);
+	if (!nsl_table) {
+		printk("nsl: kmalloc failed\n");
+		return -ENOMEM;
+	}
+	for (i = 0; i < NSL_MAX_CPU; i++) {
+		nsl_table[i] = (struct net_stack_log *)kmalloc(
+			sizeof(struct net_stack_log) * NSL_LOG_SIZE,
+			GFP_KERNEL);
+		if (!nsl_table[i]) {
+			printk("nsl: kmalloc failed\n");
+			return -ENOMEM;
+		}
+	}
+		
 	if (register_chrdev(NSL_MAJOR, NSL_DEV_NAME, &nsl_fops)) {
 		printk(KERN_ERR "nsl: unable to get major\n");
 		return -EIO;
@@ -64,18 +82,10 @@ static ssize_t nsl_write(struct file *file, const char __user *buf,
 
 static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int ret = 0;
+	int i, ret = 0;
 	char __user *argp = compat_ptr(arg);
 
 	switch (cmd) {
-	case NSL_GET_INDEX:
-		ret = atomic_read(&atomic_index);
-		if (ret >= NSL_LOG_SIZE)
-			ret = NSL_LOG_SIZE - 1;
-		break;
-	case NSL_RESET_INDEX:
-		atomic_set(&atomic_index, -1);
-		break;
 	case NSL_GET_TABLE:
 		if ((ret = copy_to_user(argp, nsl_table, sizeof(nsl_table)))) {
 			printk("copy_to_user failed: %d\n", ret);
@@ -83,6 +93,8 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	case NSL_ENABLE:
+		for (i = 0; i < NSL_MAX_CPU; i++)
+			atomic_set(&nsl_index[i], -1);
 		nsl_enable = 1;
 		break;
 	case NSL_DISABLE:

@@ -1668,7 +1668,7 @@ drop:
 int udp_rcv(struct sk_buff *skb)
 {
 	// logging net stack
-	logging_net_stack(NSL_UDP_RCV, smp_processor_id(), skb);
+	logging_net_stack(NSL_UDP_RCV, skb);
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 
