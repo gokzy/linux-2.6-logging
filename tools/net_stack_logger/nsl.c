@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
@@ -105,7 +106,8 @@ int main(int argc, char **argv)
 			       inet_ntop(AF_INET, &nsl_table[i].ip_daddr,
 					 addr, INET_ADDRSTRLEN));
 			printf("tp_sport:%d tp_dport:%d time:%llu\n",
-			       nsl_table[i].tp_sport, nsl_table[i].tp_dport,
+			       ntohs(nsl_table[i].tp_sport),
+			       ntohs(nsl_table[i].tp_dport),
 			       nsl_table[i].time);
 		}
 		close(fd);
