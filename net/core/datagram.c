@@ -58,6 +58,8 @@
 #include <net/tcp_states.h>
 #include <trace/events/skb.h>
 
+#include <linux/net_stack_logger.h>
+
 /*
  *	Is a socket 'connection oriented' ?
  */
@@ -193,8 +195,11 @@ struct sk_buff *__skb_recv_datagram(struct sock *sk, unsigned flags,
 		}
 		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
 
-		if (skb)
+		if (skb){
+			// logging net stack
+			logging_net_stack(NSL_WAIT_FOR_PACKET, skb);
 			return skb;
+		}
 
 		/* User doesn't want to wait */
 		error = -EAGAIN;

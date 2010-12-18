@@ -128,6 +128,8 @@
 
 #include <linux/filter.h>
 
+#include <linux/net_stack_logger.h>
+
 #ifdef CONFIG_INET
 #include <net/tcp.h>
 #endif
@@ -324,8 +326,12 @@ int sock_queue_rcv_skb(struct sock *sk, struct sk_buff *skb)
 	__skb_queue_tail(list, skb);
 	spin_unlock_irqrestore(&list->lock, flags);
 
-	if (!sock_flag(sk, SOCK_DEAD))
+	if (!sock_flag(sk, SOCK_DEAD)){
+		// logging net stack
+		logging_net_stack(NSL_SK_DATA_READY, skb);
 		sk->sk_data_ready(sk, skb_len);
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL(sock_queue_rcv_skb);

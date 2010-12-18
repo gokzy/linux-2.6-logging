@@ -2900,6 +2900,9 @@ static int __netif_receive_skb(struct sk_buff *skb)
 	int ret = NET_RX_DROP;
 	__be16 type;
 
+	// logging function
+	logging_net_stack(NSL___NETIF_RECEIVE_SKB, skb);
+
 
 	if (!netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3048,7 +3051,7 @@ int netif_receive_skb(struct sk_buff *skb)
 {
 
 	// logging function
-	logging_net_stack(NSL_NETIF_RECEIVE_SKB, skb);
+	logging_net_stack(NSL_NETIF_RECEIVE_SKB_IN, skb);
 
 	if (netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3068,6 +3071,9 @@ int netif_receive_skb(struct sk_buff *skb)
 		if (cpu >= 0) {
 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
 			rcu_read_unlock();
+
+			logging_net_stack(NSL_NETIF_RECEIVE_SKB_OUT, skb);
+			
 		} else {
 			rcu_read_unlock();
 			ret = __netif_receive_skb(skb);
@@ -3442,6 +3448,7 @@ static int process_backlog(struct napi_struct *napi, int quota)
 {
 	int work = 0;
 	struct softnet_data *sd = container_of(napi, struct softnet_data, backlog);
+	
 
 #ifdef CONFIG_RPS
 	/* Check if we have pending ipi, its better to send them now,
@@ -3460,6 +3467,7 @@ static int process_backlog(struct napi_struct *napi, int quota)
 
 		while ((skb = __skb_dequeue(&sd->process_queue))) {
 			local_irq_enable();
+
 			__netif_receive_skb(skb);
 			local_irq_disable();
 			input_queue_head_incr(sd);
