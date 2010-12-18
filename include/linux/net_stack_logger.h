@@ -21,15 +21,20 @@
 
 // NSL : net stack log 
 // func ID
-#define NSL_NET_RX_ACTION     1
-#define NSL_NETIF_RECEIVE_SKB 2
-#define NSL_IP_RCV            3
-#define NSL_UDP_RCV           4
-#define NSL_UDP_RECVMSG       5
-#define NSL_TCP_RCV_ESTABLISHED 6
-#define NSL_TCP_PREQUEUE_PROCESS 7
-#define NSL_TCP_RECVMSG_COPIED 8
-#define NSL_TCP_RECVMSG_OUT 9
+#define NSL_NETIF_RECEIVE_SKB_IN  1
+#define NSL_NETIF_RECEIVE_SKB_OUT 2
+
+#define NSL___NETIF_RECEIVE_SKB   3
+#define NSL_IP_RCV                4
+#define NSL_SK_DATA_READY         5
+
+#define NSL_WAIT_FOR_PACKET       6
+#define NSL_UDP_RECVMSG           7
+
+#define NSL_TCP_RCV_ESTABLISHED   8
+#define NSL_TCP_PREQUEUE_PROCESS  9
+#define NSL_TCP_RECVMSG_COPIED   10
+#define NSL_TCP_RECVMSG_OUT      11
 
 // protocol 
 #define IPv4 0x8
