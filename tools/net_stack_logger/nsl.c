@@ -6,28 +6,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
-#define NSL_DEV_NAME "nsl"
-#define NSL_MAJOR 261
-
-#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
-#define NSL_ENABLE _IO(NSL_MAJOR, 2)
-#define NSL_DISABLE _IO(NSL_MAJOR, 3)
-
-#define NSL_LOG_SIZE 1048576
-#define NSL_MAX_CPU 8
-
-struct net_stack_log {
-	uint32_t func;
-	uint16_t eth_protocol;
-	uint8_t  ip_protocol;
-	uint32_t ip_saddr;
-	uint32_t ip_daddr;
-	uint16_t tp_sport;
-	uint16_t tp_dport;
-	uint64_t time;
-	uint64_t skb;
-};
+#include <linux/net_stack_logger.h>
 
 struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 

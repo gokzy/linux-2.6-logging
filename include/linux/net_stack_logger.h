@@ -1,13 +1,16 @@
 #include <linux/types.h>
 #include <linux/kernel.h>
+#include <linux/ioctl.h>
+
+#ifdef __KERNEL__
 #include <linux/hpet.h>
 #include <linux/io.h>
 #include <linux/skbuff.h>
-#include <linux/ioctl.h>
 #include <asm/hpet.h>
 #include <linux/ip.h>
 #include <asm/atomic.h>
 #include <net/ip.h>
+#endif
 
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
@@ -54,12 +57,14 @@ struct net_stack_log {
 	uint8_t  ip_protocol;
 	uint32_t ip_saddr;
 	uint32_t ip_daddr;
+	uint16_t ip_frag_off;
 	uint16_t tp_sport;
 	uint16_t tp_dport;
 	uint64_t time;
 	uint64_t skb;
 };
 
+#ifdef __KERNEL__
 extern int nsl_enable;
 extern struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 extern atomic_t nsl_index[];
@@ -88,6 +93,7 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 		nsl_table[cpu][index].ip_protocol  = ip ? ip->protocol : 0;
 		nsl_table[cpu][index].ip_saddr     = ip ? ip->saddr : 0;
 		nsl_table[cpu][index].ip_daddr     = ip ? ip->daddr : 0;
+		nsl_table[cpu][index].ip_frag_off  = ip ? ip->frag_off : 0;
 		nsl_table[cpu][index].tp_sport     = tp_port ? tp_port->sport : 0;
 		nsl_table[cpu][index].tp_dport     = tp_port ? tp_port->dport : 0;
 		nsl_table[cpu][index].time         = 
@@ -95,3 +101,4 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 		nsl_table[cpu][index].skb         = (uint64_t)skb;
 	}
 }
+#endif
