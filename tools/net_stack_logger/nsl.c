@@ -84,6 +84,24 @@ int main(int argc, char **argv)
 				       ntohs(nsl_table[i][j].tp_sport));
 				printf("tp_dport:%d ",
 				       ntohs(nsl_table[i][j].tp_dport));
+				printf("tcp_flags:");
+				if (nsl_table[i][j].tcp_flags.cwr)
+					printf("cwr,");
+				if (nsl_table[i][j].tcp_flags.ece)
+					printf("ece,");
+				if (nsl_table[i][j].tcp_flags.urg)
+					printf("urg,");
+				if (nsl_table[i][j].tcp_flags.ack)
+					printf("ack,");
+				if (nsl_table[i][j].tcp_flags.psh)
+					printf("psh,");
+				if (nsl_table[i][j].tcp_flags.rst)
+					printf("rst,");
+				if (nsl_table[i][j].tcp_flags.syn)
+					printf("syn,");
+				if (nsl_table[i][j].tcp_flags.fin)
+					printf("fin,");
+				printf("doff:%x ", nsl_table[i][j].tcp_flags.doff);
 				printf("time:%llu ",
 				       nsl_table[i][j].time);
 				printf("skb:%llx\n",
