@@ -23,9 +23,9 @@ int main(int argc, char **argv)
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		int fd = open(NSL_DEV_NAME, 0);
+		int fd = open("nsl0", 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open nsl0\n");
 			return -1;
 		}
 		ioctl(fd, NSL_ENABLE);
@@ -33,9 +33,9 @@ int main(int argc, char **argv)
 
 		return 0;
 	}else if (!strcmp(argv[1], "stop")) {
-		int fd = open(NSL_DEV_NAME, 0);
+		int fd = open("nsl0", 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open nsl0\n");
 			return -1;
 		}
 		ioctl(fd, NSL_DISABLE);
@@ -46,9 +46,9 @@ int main(int argc, char **argv)
 		int fd, index, i, j, ret;
 		char addr[INET_ADDRSTRLEN];
 
-		fd = open(NSL_DEV_NAME, 0);
+		fd = open("nsl0", 0);
 		if(fd < 0) {
-			fprintf(stderr, "can't open "NSL_DEV_NAME"\n");
+			fprintf(stderr, "can't open nsl0\n");
 			return -1;
 		}
 
