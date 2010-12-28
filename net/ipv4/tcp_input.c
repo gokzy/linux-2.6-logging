@@ -4439,8 +4439,10 @@ queue_and_out:
 
 		if (eaten > 0)
 			__kfree_skb(skb);
-		else if (!sock_flag(sk, SOCK_DEAD))
+		else if (!sock_flag(sk, SOCK_DEAD)) {
+			logging_net_stack(NSL_TCP_1, skb);
 			sk->sk_data_ready(sk, 0);
+		}
 		return;
 	}
 
@@ -5044,8 +5046,10 @@ static void tcp_urg(struct sock *sk, struct sk_buff *skb, struct tcphdr *th)
 			if (skb_copy_bits(skb, ptr, &tmp, 1))
 				BUG();
 			tp->urg_data = TCP_URG_VALID | tmp;
-			if (!sock_flag(sk, SOCK_DEAD))
+			if (!sock_flag(sk, SOCK_DEAD)) {
+				logging_net_stack(NSL_TCP_2, skb);
 				sk->sk_data_ready(sk, 0);
+			}
 		}
 	}
 }
@@ -5131,10 +5135,12 @@ static int tcp_dma_try_early_copy(struct sock *sk, struct sk_buff *skb,
 		    (tcp_flag_word(tcp_hdr(skb)) & TCP_FLAG_PSH) ||
 		    (atomic_read(&sk->sk_rmem_alloc) > (sk->sk_rcvbuf >> 1))) {
 			tp->ucopy.wakeup = 1;
+			logging_net_stack(NSL_TCP_3, skb);
 			sk->sk_data_ready(sk, 0);
 		}
 	} else if (chunk > 0) {
 		tp->ucopy.wakeup = 1;
+		logging_net_stack(NSL_TCP_4, skb);
 		sk->sk_data_ready(sk, 0);
 	}
 out:

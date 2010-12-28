@@ -6,28 +6,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
-#define NSL_DEV_NAME "nsl"
-#define NSL_MAJOR 261
-
-#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
-#define NSL_ENABLE _IO(NSL_MAJOR, 2)
-#define NSL_DISABLE _IO(NSL_MAJOR, 3)
-
-#define NSL_LOG_SIZE 1048576
-#define NSL_MAX_CPU 8
-
-struct net_stack_log {
-	uint32_t func;
-	uint16_t eth_protocol;
-	uint8_t  ip_protocol;
-	uint32_t ip_saddr;
-	uint32_t ip_daddr;
-	uint16_t tp_sport;
-	uint16_t tp_dport;
-	uint64_t time;
-	uint64_t skb;
-};
+#include <linux/net_stack_logger.h>
 
 struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 
@@ -105,6 +84,24 @@ int main(int argc, char **argv)
 				       ntohs(nsl_table[i][j].tp_sport));
 				printf("tp_dport:%d ",
 				       ntohs(nsl_table[i][j].tp_dport));
+				printf("tcp_flags:");
+				if (nsl_table[i][j].tcp_flags.cwr)
+					printf("cwr,");
+				if (nsl_table[i][j].tcp_flags.ece)
+					printf("ece,");
+				if (nsl_table[i][j].tcp_flags.urg)
+					printf("urg,");
+				if (nsl_table[i][j].tcp_flags.ack)
+					printf("ack,");
+				if (nsl_table[i][j].tcp_flags.psh)
+					printf("psh,");
+				if (nsl_table[i][j].tcp_flags.rst)
+					printf("rst,");
+				if (nsl_table[i][j].tcp_flags.syn)
+					printf("syn,");
+				if (nsl_table[i][j].tcp_flags.fin)
+					printf("fin,");
+				printf("doff:%x ", nsl_table[i][j].tcp_flags.doff);
 				printf("time:%llu ",
 				       nsl_table[i][j].time);
 				printf("skb:%llx\n",
