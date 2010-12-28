@@ -57,55 +57,40 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ioctl failed %d\n", ret);
 			return -1;
 		}
-		printf("NSL_GET_TABLE:\n");
-		
+		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
+			   "tp_sport,tp_dport,tcp_cwr,tcp_ece,tcp_urg,tcp_ack,tcp_psh,"
+			   "tcp_rst,tcp_syn,tcp_fin,doff,time,skb\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			for (j = 0; j < NSL_LOG_SIZE; j++) {
 				if (!nsl_table[i][j].func)
 					break;
-				printf("cpu:%d ", i);
-				printf("seq:%d ", j);
-				printf("func:%d ", nsl_table[i][j].func);
-				printf("eth_protocol:%d ",
-				       nsl_table[i][j].eth_protocol);
-				printf("ip_protocol:%d ",
-				       nsl_table[i][j].ip_protocol);
-				printf("ip_saddr:%s ",
-				       inet_ntop(AF_INET, 
-						 &nsl_table[i][j].ip_saddr,
-						 addr,
-						 INET_ADDRSTRLEN));
-				printf("ip_daddr:%s ",
-				       inet_ntop(AF_INET,
-						 &nsl_table[i][j].ip_daddr,
-						 addr,
-						 INET_ADDRSTRLEN));
-				printf("tp_sport:%d ",
-				       ntohs(nsl_table[i][j].tp_sport));
-				printf("tp_dport:%d ",
-				       ntohs(nsl_table[i][j].tp_dport));
-				printf("tcp_flags:");
-				if (nsl_table[i][j].tcp_flags.cwr)
-					printf("cwr,");
-				if (nsl_table[i][j].tcp_flags.ece)
-					printf("ece,");
-				if (nsl_table[i][j].tcp_flags.urg)
-					printf("urg,");
-				if (nsl_table[i][j].tcp_flags.ack)
-					printf("ack,");
-				if (nsl_table[i][j].tcp_flags.psh)
-					printf("psh,");
-				if (nsl_table[i][j].tcp_flags.rst)
-					printf("rst,");
-				if (nsl_table[i][j].tcp_flags.syn)
-					printf("syn,");
-				if (nsl_table[i][j].tcp_flags.fin)
-					printf("fin,");
-				printf("doff:%x ", nsl_table[i][j].tcp_flags.doff);
-				printf("time:%llu ",
-				       nsl_table[i][j].time);
-				printf("skb:%llx\n",
-				       nsl_table[i][j].skb);
+				printf("%d,%d,%d,%d,%d,%s,%s,"
+					   "%d,%d,%d,%d,%d,%d,%d,"
+					   "%d,%d,%d,%x,%llu,%llx\n",
+					   i, j, nsl_table[i][j].func,
+				       nsl_table[i][j].eth_protocol,
+					   nsl_table[i][j].ip_protocol,
+					   inet_ntop(AF_INET, 
+								 &nsl_table[i][j].ip_saddr,
+								 addr,
+								 INET_ADDRSTRLEN),
+					   inet_ntop(AF_INET,
+								 &nsl_table[i][j].ip_daddr,
+								 addr,
+								 INET_ADDRSTRLEN),
+					   ntohs(nsl_table[i][j].tp_sport),
+					   ntohs(nsl_table[i][j].tp_dport),
+					   nsl_table[i][j].tcp_flags.cwr,
+					   nsl_table[i][j].tcp_flags.ece,
+					   nsl_table[i][j].tcp_flags.urg,
+					   nsl_table[i][j].tcp_flags.ack,
+					   nsl_table[i][j].tcp_flags.psh,
+					   nsl_table[i][j].tcp_flags.rst,
+					   nsl_table[i][j].tcp_flags.syn,
+					   nsl_table[i][j].tcp_flags.fin,
+					   nsl_table[i][j].tcp_flags.doff,
+					   nsl_table[i][j].time,
+					   nsl_table[i][j].skb);
 			}
 		}
 		close(fd);
