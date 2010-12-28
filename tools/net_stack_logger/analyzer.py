@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 
 class Packet(object):
 
@@ -52,10 +53,14 @@ def parseParameter(log):
     return dict( map(lambda x : x.split(":"), log.split()) )
 
 if __name__ == "__main__":
+    if len(sys.argv) <= 2:
+        print "please file name"
+        
+
     packets = {}
 
     print "loading file..."
-    f = open("log.txt")
+    f = open(sys.argv[1])
     log = f.readlines()
     f.close()
     print "load complete."
