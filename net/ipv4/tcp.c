@@ -1729,7 +1729,6 @@ skip_copy:
 		continue;
 
 	found_fin_ok:
-		nsl_log(NSL_SKB_FREE, skb);
 		/* Process the FIN. */
 		++*seq;
 		if (!(flags & MSG_PEEK)) {

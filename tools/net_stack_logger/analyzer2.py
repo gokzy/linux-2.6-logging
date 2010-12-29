@@ -9,7 +9,7 @@ PROTOS = [None, None, None, None, None, None, 'tcp', None, None, None, None, Non
 
 NSL_SKB_COPY = '7'
 NSL_SKB_FREE = '8'
-FUNCS = [None, 'netif_receive_skb', 'enqueue_to_backlog', '__netif_receive_skb', 'ip_rcv', 'sk_data_ready', 'skb_dequeue', 'skb_copy', 'skb_free']
+FUNCS = [None, 'netif_receive_skb', 'enqueue_to_backlog', '__netif_receive_skb', 'ip_rcv', 'sk_data_ready', 'skb_dequeue', 'skb_copy']
 
 flow = {}
 for packet in reader:

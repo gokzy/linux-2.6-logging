@@ -32,7 +32,6 @@
 #define NSL_SK_DATA_READY	5
 #define NSL_SKB_DEQUEUE		6
 #define NSL_SKB_COPY		7
-#define NSL_SKB_FREE		8
 
 #define MAC_HEADER_LEN 14
 

@@ -1196,7 +1196,6 @@ try_again:
 		err = ulen;
 
 	nsl_log(NSL_SKB_COPY, skb);
-	nsl_log(NSL_SKB_FREE, skb);
 
 out_free:
 	skb_free_datagram_locked(sk, skb);
