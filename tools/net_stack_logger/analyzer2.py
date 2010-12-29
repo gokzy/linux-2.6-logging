@@ -7,13 +7,14 @@ flow = {}
 for packet in reader:
     if packet['ip_protocol'] != '17':
         continue
-    if flow.has_key(packet['skb']):
-        flow[packet['skb']].append(packet)
+    if flow.has_key(packet['id']):
+        flow[packet['id']].append(packet)
     else:
-        flow[packet['skb']] = [packet]
+        flow[packet['id']] = [packet]
     if packet['func'] == '7':
-        first = flow[packet['skb']][0]
-        for p in flow[packet['skb']]:
-            print "%s %d, " % (p['func'], int(p['time']) - int(first['time'])),
+        first = flow[packet['id']][0]
+        for p in flow[packet['id']]:
+            print "%s %d, " % (p['func'],
+                               int(p['time'], 16) - int(first['time'], 16)),
         print
-        del flow[packet['skb']]
+        del flow[packet['id']]
