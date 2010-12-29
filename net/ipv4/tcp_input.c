@@ -5396,8 +5396,10 @@ no_ack:
 #endif
 			if (eaten)
 				__kfree_skb(skb);
-			else
+			else {
+				nsl_log(NSL_SK_DATA_READY, skb);
 				sk->sk_data_ready(sk, 0);
+			}
 			return 0;
 		}
 	}
