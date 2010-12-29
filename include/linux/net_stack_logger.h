@@ -46,6 +46,9 @@
 #define NSL_TCP_2 13
 #define NSL_TCP_3 14
 #define NSL_TCP_4 15
+#define NSL_TCP_5 16
+
+#define NSL_QUEUE_ERR_SKB 17
 
 #define MAC_HEADER_LEN 14
 

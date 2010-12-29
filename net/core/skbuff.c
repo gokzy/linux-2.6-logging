@@ -68,6 +68,8 @@
 #include <asm/system.h>
 #include <trace/events/skb.h>
 
+#include <linux/net_stack_logger.h>
+
 #include "kmap_skb.h"
 
 static struct kmem_cache *skbuff_head_cache __read_mostly;
@@ -2979,8 +2981,10 @@ int sock_queue_err_skb(struct sock *sk, struct sk_buff *skb)
 	atomic_add(skb->truesize, &sk->sk_rmem_alloc);
 
 	skb_queue_tail(&sk->sk_error_queue, skb);
-	if (!sock_flag(sk, SOCK_DEAD))
+	if (!sock_flag(sk, SOCK_DEAD)) {
+		nsl_log(NSL_QUEUE_ERR_SKB, skb);
 		sk->sk_data_ready(sk, skb->len);
+	}
 	return 0;
 }
 EXPORT_SYMBOL(sock_queue_err_skb);
