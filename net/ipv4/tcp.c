@@ -1257,7 +1257,7 @@ static void tcp_prequeue_process(struct sock *sk)
 	 * necessary */
 	local_bh_disable();
 	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
-		logging_net_stack(NSL_TCP_PREQUEUE_PROCESS, skb);
+		nsl_log(NSL_TCP_PREQUEUE_PROCESS, skb);
 		sk_backlog_rcv(sk, skb);
 	}
 	local_bh_enable();
@@ -1775,13 +1775,13 @@ skip_copy:
 
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
-	logging_net_stack(NSL_TCP_RECVMSG_COPIED, skb);
+	nsl_log(NSL_TCP_RECVMSG_COPIED, skb);
 	return copied;
 
 out:
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
-	logging_net_stack(NSL_TCP_RECVMSG_OUT, skb);
+	nsl_log(NSL_TCP_RECVMSG_OUT, skb);
 	return err;
 
 recv_urg:

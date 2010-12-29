@@ -197,7 +197,7 @@ struct sk_buff *__skb_recv_datagram(struct sock *sk, unsigned flags,
 
 		if (skb){
 			// logging net stack
-			logging_net_stack(NSL_WAIT_FOR_PACKET, skb);
+			nsl_log(NSL_WAIT_FOR_PACKET, skb);
 			return skb;
 		}
 

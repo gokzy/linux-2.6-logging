@@ -47,14 +47,9 @@
 #define NSL_TCP_3 14
 #define NSL_TCP_4 15
 
-// protocol 
-#define IPv4 0x8
-#define TCP  0x6
-#define UDP  0x11
-
 #define MAC_HEADER_LEN 14
 
-struct net_stack_log {
+struct nsl_entry {
 	uint32_t func;
 	uint16_t eth_protocol;
 	uint8_t  ip_protocol;
@@ -63,45 +58,27 @@ struct net_stack_log {
 	uint16_t ip_frag_off;
 	uint16_t tp_sport;
 	uint16_t tp_dport;
-	union {
-		uint16_t val;
-#if defined(__LITTLE_ENDIAN_BITFIELD)
-		__u16	res1:4,
-			doff:4,
-			fin:1,
-			syn:1,
-			rst:1,
-			psh:1,
-			ack:1,
-			urg:1,
-			ece:1,
-			cwr:1;
-#elif defined(__BIG_ENDIAN_BITFIELD)
-		__u16	doff:4,
-			res1:4,
-			cwr:1,
-			ece:1,
-			urg:1,
-			ack:1,
-			psh:1,
-			rst:1,
-			syn:1,
-			fin:1;
-#else
-#error	"Adjust your <asm/byteorder.h> defines"
-#endif
-	} tcp_flags;
 	uint64_t time;
-	uint64_t skb;
+	uint64_t id;
 };
 
 #ifdef __KERNEL__
 extern int nsl_enable;
-extern struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+extern struct nsl_entry nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 extern atomic_t nsl_index[];
 extern void __iomem *hpet_virt_address;
 
-static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
+static inline __u64 nsl_gettime(void)
+{
+	return readq(hpet_virt_address + HPET_COUNTER);
+}
+
+static inline void nsl_setid(struct sk_buff *skb)
+{
+	skb->id = nsl_gettime();
+}
+
+static inline void nsl_log(unsigned int func, struct sk_buff *skb)
 {
 	int cpu = smp_processor_id();
 	int index;
@@ -109,9 +86,9 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 	if (nsl_enable &&
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
 		nsl_table[cpu][index].func = func;
-		nsl_table[cpu][index].time = readq(hpet_virt_address + HPET_COUNTER);
-		nsl_table[cpu][index].skb = (uint64_t)skb;		
-		if (skb) {
+		nsl_table[cpu][index].time = nsl_gettime();
+		if (skb != NULL) {
+			nsl_table[cpu][index].id = skb->id;
 			nsl_table[cpu][index].eth_protocol = skb->protocol;
 			if (skb->protocol == htons(ETH_P_IP) && skb->head) {
 				unsigned int mhdr = skb->mac_header + MAC_HEADER_LEN;
@@ -126,8 +103,6 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 						((char *)skb->head + mhdr + (ip->ihl * 4));
 					nsl_table[cpu][index].tp_sport = tcp->source;
 					nsl_table[cpu][index].tp_dport = tcp->dest;
-					nsl_table[cpu][index].tcp_flags.val =
-						*(__u16 *)(&tcp->ack_seq + 1);
 					break;
 				}
 				case IPPROTO_UDP: {
@@ -135,13 +110,11 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 						((char *)skb->head + mhdr + (ip->ihl * 4));
 					nsl_table[cpu][index].tp_sport = udp->source;
 					nsl_table[cpu][index].tp_dport = udp->dest;
-					nsl_table[cpu][index].tcp_flags.val = 0;
 					break;
 				}
 				default:
 					nsl_table[cpu][index].tp_sport = 0;
 					nsl_table[cpu][index].tp_dport = 0;
-					nsl_table[cpu][index].tcp_flags.val = 0;
 				}
 			}else{
 				nsl_table[cpu][index].ip_protocol = 0;
@@ -150,7 +123,6 @@ static inline void logging_net_stack(unsigned int func, struct sk_buff *skb)
 				nsl_table[cpu][index].ip_frag_off = 0;
 				nsl_table[cpu][index].tp_sport = 0;
 				nsl_table[cpu][index].tp_dport = 0;
-				nsl_table[cpu][index].tcp_flags.val = 0;
 			}
 		}else
 			nsl_table[cpu][index].eth_protocol = 0;

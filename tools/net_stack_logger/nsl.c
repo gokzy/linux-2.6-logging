@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 #include <linux/net_stack_logger.h>
 
-struct net_stack_log nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+struct nsl_entry nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
 
 void usage(void)
 {
@@ -58,15 +58,13 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
-			   "tp_sport,tp_dport,tcp_cwr,tcp_ece,tcp_urg,tcp_ack,tcp_psh,"
-			   "tcp_rst,tcp_syn,tcp_fin,doff,time,skb\n");
+			   "tp_sport,tp_dport,time,id\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			for (j = 0; j < NSL_LOG_SIZE; j++) {
 				if (!nsl_table[i][j].func)
 					break;
 				printf("%d,%d,%d,%d,%d,%s,%s,"
-					   "%d,%d,%d,%d,%d,%d,%d,"
-					   "%d,%d,%d,%x,%llu,%llx\n",
+					   "%d,%d,%llx,%llx\n",
 					   i, j, nsl_table[i][j].func,
 				       nsl_table[i][j].eth_protocol,
 					   nsl_table[i][j].ip_protocol,
@@ -80,17 +78,8 @@ int main(int argc, char **argv)
 								 INET_ADDRSTRLEN),
 					   ntohs(nsl_table[i][j].tp_sport),
 					   ntohs(nsl_table[i][j].tp_dport),
-					   nsl_table[i][j].tcp_flags.cwr,
-					   nsl_table[i][j].tcp_flags.ece,
-					   nsl_table[i][j].tcp_flags.urg,
-					   nsl_table[i][j].tcp_flags.ack,
-					   nsl_table[i][j].tcp_flags.psh,
-					   nsl_table[i][j].tcp_flags.rst,
-					   nsl_table[i][j].tcp_flags.syn,
-					   nsl_table[i][j].tcp_flags.fin,
-					   nsl_table[i][j].tcp_flags.doff,
 					   nsl_table[i][j].time,
-					   nsl_table[i][j].skb);
+					   nsl_table[i][j].id);
 			}
 		}
 		close(fd);
