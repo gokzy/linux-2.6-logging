@@ -327,7 +327,6 @@ int sock_queue_rcv_skb(struct sock *sk, struct sk_buff *skb)
 	spin_unlock_irqrestore(&list->lock, flags);
 
 	if (!sock_flag(sk, SOCK_DEAD)){
-		// logging net stack
 		nsl_log(NSL_SK_DATA_READY, skb);
 		sk->sk_data_ready(sk, skb_len);
 	}

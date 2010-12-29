@@ -378,7 +378,6 @@ int ip_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt, 
 	struct iphdr *iph;
 	u32 len;
 
-	// logging net stack
 	nsl_log(NSL_IP_RCV, skb);
 
 	/* When the interface is in promisc. mode, drop all the crap

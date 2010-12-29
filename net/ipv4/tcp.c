@@ -1257,7 +1257,6 @@ static void tcp_prequeue_process(struct sock *sk)
 	 * necessary */
 	local_bh_disable();
 	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
-		nsl_log(NSL_TCP_PREQUEUE_PROCESS, skb);
 		sk_backlog_rcv(sk, skb);
 	}
 	local_bh_enable();
@@ -1477,6 +1476,8 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Next get a buffer. */
 
 		skb_queue_walk(&sk->sk_receive_queue, skb) {
+			nsl_log(NSL_SKB_DEQUEUE, skb);
+
 			/* Now that we have two receive queues this
 			 * shouldn't happen.
 			 */
@@ -1710,7 +1711,7 @@ do_prequeue:
 		len -= used;
 
 		tcp_rcv_space_adjust(sk);
-
+		nsl_log(NSL_SKB_COPY, skb);
 skip_copy:
 		if (tp->urg_data && after(tp->copied_seq, tp->urg_seq)) {
 			tp->urg_data = 0;
@@ -1728,6 +1729,7 @@ skip_copy:
 		continue;
 
 	found_fin_ok:
+		nsl_log(NSL_SKB_FREE, skb);
 		/* Process the FIN. */
 		++*seq;
 		if (!(flags & MSG_PEEK)) {
@@ -1775,13 +1777,11 @@ skip_copy:
 
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
-	nsl_log(NSL_TCP_RECVMSG_COPIED, skb);
 	return copied;
 
 out:
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
-	nsl_log(NSL_TCP_RECVMSG_OUT, skb);
 	return err;
 
 recv_urg:

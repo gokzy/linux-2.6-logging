@@ -2900,9 +2900,7 @@ static int __netif_receive_skb(struct sk_buff *skb)
 	int ret = NET_RX_DROP;
 	__be16 type;
 
-	// logging function
 	nsl_log(NSL___NETIF_RECEIVE_SKB, skb);
-
 
 	if (!netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3050,8 +3048,7 @@ out:
 int netif_receive_skb(struct sk_buff *skb)
 {
 	nsl_setid(skb);
-	// logging function
-	nsl_log(NSL_NETIF_RECEIVE_SKB_IN, skb);
+	nsl_log(NSL_NETIF_RECEIVE_SKB, skb);
 
 	if (netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3072,8 +3069,7 @@ int netif_receive_skb(struct sk_buff *skb)
 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
 			rcu_read_unlock();
 
-			nsl_log(NSL_NETIF_RECEIVE_SKB_OUT, skb);
-			
+			nsl_log(NSL_ENQUEUE_TO_BACKLOG, skb);
 		} else {
 			rcu_read_unlock();
 			ret = __netif_receive_skb(skb);
@@ -6231,4 +6227,3 @@ static int __init initialize_hashrnd(void)
 }
 
 late_initcall_sync(initialize_hashrnd);
-

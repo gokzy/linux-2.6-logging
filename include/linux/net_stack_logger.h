@@ -25,30 +25,14 @@
 #define NSL_LOG_SIZE 1048576
 #define NSL_MAX_CPU 8
 
-// NSL : net stack log 
-// func ID
-#define NSL_NETIF_RECEIVE_SKB_IN  1
-#define NSL_NETIF_RECEIVE_SKB_OUT 2
-
-#define NSL___NETIF_RECEIVE_SKB   3
-#define NSL_IP_RCV                4
-#define NSL_SK_DATA_READY         5
-
-#define NSL_WAIT_FOR_PACKET       6
-#define NSL_UDP_RECVMSG           7
-
-#define NSL_TCP_RCV_ESTABLISHED   8
-#define NSL_TCP_PREQUEUE_PROCESS  9
-#define NSL_TCP_RECVMSG_COPIED   10
-#define NSL_TCP_RECVMSG_OUT      11
-
-#define NSL_TCP_1 12
-#define NSL_TCP_2 13
-#define NSL_TCP_3 14
-#define NSL_TCP_4 15
-#define NSL_TCP_5 16
-
-#define NSL_QUEUE_ERR_SKB 17
+#define NSL_NETIF_RECEIVE_SKB	1
+#define NSL_ENQUEUE_TO_BACKLOG	2
+#define NSL___NETIF_RECEIVE_SKB	3
+#define NSL_IP_RCV		4
+#define NSL_SK_DATA_READY	5
+#define NSL_SKB_DEQUEUE		6
+#define NSL_SKB_COPY		7
+#define NSL_SKB_FREE		8
 
 #define MAC_HEADER_LEN 14
 

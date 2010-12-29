@@ -2981,10 +2981,8 @@ int sock_queue_err_skb(struct sock *sk, struct sk_buff *skb)
 	atomic_add(skb->truesize, &sk->sk_rmem_alloc);
 
 	skb_queue_tail(&sk->sk_error_queue, skb);
-	if (!sock_flag(sk, SOCK_DEAD)) {
-		nsl_log(NSL_QUEUE_ERR_SKB, skb);
+	if (!sock_flag(sk, SOCK_DEAD)) 
 		sk->sk_data_ready(sk, skb->len);
-	}
 	return 0;
 }
 EXPORT_SYMBOL(sock_queue_err_skb);

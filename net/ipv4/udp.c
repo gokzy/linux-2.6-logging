@@ -1195,8 +1195,8 @@ try_again:
 	if (flags & MSG_TRUNC)
 		err = ulen;
 
-	// logging net stack
-	nsl_log(NSL_UDP_RECVMSG, skb);
+	nsl_log(NSL_SKB_COPY, skb);
+	nsl_log(NSL_SKB_FREE, skb);
 
 out_free:
 	skb_free_datagram_locked(sk, skb);
@@ -1670,8 +1670,6 @@ drop:
 
 int udp_rcv(struct sk_buff *skb)
 {
-	/* // logging net stack */
-	/* nsl_log(NSL_UDP_RCV, skb); */
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 
@@ -2248,4 +2246,3 @@ struct sk_buff *udp4_ufo_fragment(struct sk_buff *skb, int features)
 out:
 	return segs;
 }
-

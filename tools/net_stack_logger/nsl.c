@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 				if (!nsl_table[i][j].func)
 					break;
 				printf("%d,%d,%d,%d,%d,%s,%s,"
-					   "%d,%d,%llx,%llx\n",
+					   "%d,%d,%llu,%llu\n",
 					   i, j, nsl_table[i][j].func,
 				       nsl_table[i][j].eth_protocol,
 					   nsl_table[i][j].ip_protocol,
