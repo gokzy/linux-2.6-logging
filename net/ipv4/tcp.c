@@ -1465,10 +1465,13 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 		/* Are we at urgent data? Stop if we have read anything or have SIGURG pending. */
 		if (tp->urg_data && tp->urg_seq == *seq) {
-			if (copied)
+			if (copied) {
+				nsl_log(NSL_TCP_BREAK1, skb);
 				break;
+			}
 			if (signal_pending(current)) {
 				copied = timeo ? sock_intr_errno(timeo) : -EAGAIN;
+				nsl_log(NSL_TCP_BREAK2, skb);
 				break;
 			}
 		}
@@ -1485,8 +1488,10 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 			     KERN_INFO "recvmsg bug: copied %X "
 				       "seq %X rcvnxt %X fl %X\n", *seq,
 				       TCP_SKB_CB(skb)->seq, tp->rcv_nxt,
-				       flags))
+					 flags)) {
+				nsl_log(NSL_TCP_BREAK3, skb);
 				break;
+			}
 
 			offset = *seq - TCP_SKB_CB(skb)->seq;
 			if (tcp_hdr(skb)->syn)
@@ -1503,27 +1508,36 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 		/* Well, if we have backlog, try to process it now yet. */
 
-		if (copied >= target && !sk->sk_backlog.tail)
+		if (copied >= target && !sk->sk_backlog.tail) {
+			nsl_log(NSL_TCP_BREAK4, skb);
 			break;
+		}
 
 		if (copied) {
 			if (sk->sk_err ||
 			    sk->sk_state == TCP_CLOSE ||
 			    (sk->sk_shutdown & RCV_SHUTDOWN) ||
 			    !timeo ||
-			    signal_pending(current))
+			    signal_pending(current)) {
+				nsl_log(NSL_TCP_BREAK5, skb);
 				break;
+			}
 		} else {
-			if (sock_flag(sk, SOCK_DONE))
-				break;
-
-			if (sk->sk_err) {
-				copied = sock_error(sk);
+			if (sock_flag(sk, SOCK_DONE)) {
+				nsl_log(NSL_TCP_BREAK6, skb);
 				break;
 			}
 
-			if (sk->sk_shutdown & RCV_SHUTDOWN)
+			if (sk->sk_err) {
+				copied = sock_error(sk);
+				nsl_log(NSL_TCP_BREAK7, skb);
 				break;
+			}
+
+			if (sk->sk_shutdown & RCV_SHUTDOWN) {
+				nsl_log(NSL_TCP_BREAK8, skb);
+				break;
+			}
 
 			if (sk->sk_state == TCP_CLOSE) {
 				if (!sock_flag(sk, SOCK_DONE)) {
@@ -1531,18 +1545,22 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 					 * from never connected socket.
 					 */
 					copied = -ENOTCONN;
+					nsl_log(NSL_TCP_BREAK9, skb);
 					break;
 				}
+				nsl_log(NSL_TCP_BREAK10, skb);
 				break;
 			}
 
 			if (!timeo) {
 				copied = -EAGAIN;
+				nsl_log(NSL_TCP_BREAK11, skb);
 				break;
 			}
 
 			if (signal_pending(current)) {
 				copied = sock_intr_errno(timeo);
+				nsl_log(NSL_TCP_BREAK12, skb);
 				break;
 			}
 		}
@@ -1588,8 +1606,10 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 			 * is not empty. It is more elegant, but eats cycles,
 			 * unfortunately.
 			 */
-			if (!skb_queue_empty(&tp->ucopy.prequeue))
+			if (!skb_queue_empty(&tp->ucopy.prequeue)) {
+				nsl_log(NSL_TCP_DO_PREQUEUE, skb);
 				goto do_prequeue;
+			}
 
 			/* __ Set realtime policy in scheduler __ */
 		}
@@ -1729,6 +1749,7 @@ skip_copy:
 		continue;
 
 	found_fin_ok:
+		nsl_log(NSL_TCP_FOUND_FIN_OK, skb);
 		/* Process the FIN. */
 		++*seq;
 		if (!(flags & MSG_PEEK)) {
@@ -1770,20 +1791,23 @@ skip_copy:
 	/* According to UNIX98, msg_name/msg_namelen are ignored
 	 * on connected socket. I was just happy when found this 8) --ANK
 	 */
-
+	nsl_log(NSL_TCP_BEFORE_CLEANUP_RBUF, skb);
 	/* Clean up data we have read: This will do ACK frames. */
 	tcp_cleanup_rbuf(sk, copied);
+	nsl_log(NSL_TCP_AFTER_CLEANUP_RBUF, skb);
 
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
 	return copied;
 
 out:
+	nsl_log(NSL_TCP_OUT, skb);
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
 	return err;
 
 recv_urg:
+	nsl_log(NSL_TCP_RECV_URG, skb);
 	err = tcp_recv_urg(sk, msg, len, flags);
 	goto out;
 }
