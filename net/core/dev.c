@@ -3444,7 +3444,6 @@ static int process_backlog(struct napi_struct *napi, int quota)
 {
 	int work = 0;
 	struct softnet_data *sd = container_of(napi, struct softnet_data, backlog);
-	
 
 #ifdef CONFIG_RPS
 	/* Check if we have pending ipi, its better to send them now,
@@ -3463,7 +3462,6 @@ static int process_backlog(struct napi_struct *napi, int quota)
 
 		while ((skb = __skb_dequeue(&sd->process_queue))) {
 			local_irq_enable();
-
 			__netif_receive_skb(skb);
 			local_irq_disable();
 			input_queue_head_incr(sd);
@@ -6227,3 +6225,4 @@ static int __init initialize_hashrnd(void)
 }
 
 late_initcall_sync(initialize_hashrnd);
+

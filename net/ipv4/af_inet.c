@@ -116,7 +116,7 @@
 #ifdef CONFIG_IP_MROUTE
 #include <linux/mroute.h>
 #endif
-
+#include <linux/net_stack_logger.h>
 
 /* The inetsw table contains everything that inet_create needs to
  * build a new socket.
@@ -758,10 +758,12 @@ int inet_recvmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 	int addr_len = 0;
 	int err;
 
+	nsl_log_sk(NSL_BEGIN_INET_RECVMSG, sk);
 	sock_rps_record_flow(sk);
 
 	err = sk->sk_prot->recvmsg(iocb, sk, msg, size, flags & MSG_DONTWAIT,
 				   flags & ~MSG_DONTWAIT, &addr_len);
+	nsl_log_sk(NSL_END_INET_RECVMSG, sk);
 	if (err >= 0)
 		msg->msg_namelen = addr_len;
 	return err;

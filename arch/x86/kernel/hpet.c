@@ -50,7 +50,6 @@ struct hpet_dev {
 	char				name[10];
 };
 
-
 inline unsigned int hpet_readl(unsigned int a)
 {
 	return readl(hpet_virt_address + a);

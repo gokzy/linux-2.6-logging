@@ -53,6 +53,9 @@
 #define NSL_TCP_BREAK12 24
 #define NSL_TCP_DO_PREQUEUE 25
 
+#define NSL_BEGIN_INET_RECVMSG 26
+#define NSL_END_INET_RECVMSG 27
+
 #define MAC_HEADER_LEN 14
 
 struct nsl_entry {
@@ -132,6 +135,29 @@ static inline void nsl_log(unsigned int func, struct sk_buff *skb)
 			}
 		}else
 			nsl_table[cpu][index].eth_protocol = 0;
+	}
+}
+
+static inline void nsl_log_sk(unsigned int func, struct sock *sk)
+{
+	struct inet_sock *inet = inet_sk(sk);
+	int cpu = smp_processor_id();
+	int index;
+
+	if (nsl_enable &&
+	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
+		nsl_table[cpu][index].func = func;
+		nsl_table[cpu][index].time = nsl_gettime();
+		if (sk != NULL) {
+			nsl_table[cpu][index].id = 0;
+			nsl_table[cpu][index].eth_protocol = 0;
+			nsl_table[cpu][index].ip_protocol  = 0;
+			nsl_table[cpu][index].ip_saddr = inet->inet_saddr;
+			nsl_table[cpu][index].ip_daddr = inet->inet_daddr;
+			nsl_table[cpu][index].ip_frag_off = 0;
+			nsl_table[cpu][index].tp_sport = inet->inet_sport;
+			nsl_table[cpu][index].tp_dport = inet->inet_dport;
+		}
 	}
 }
 #endif
