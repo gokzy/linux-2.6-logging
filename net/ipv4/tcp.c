@@ -1466,12 +1466,10 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Are we at urgent data? Stop if we have read anything or have SIGURG pending. */
 		if (tp->urg_data && tp->urg_seq == *seq) {
 			if (copied) {
-				nsl_log(NSL_TCP_BREAK1, skb);
 				break;
 			}
 			if (signal_pending(current)) {
 				copied = timeo ? sock_intr_errno(timeo) : -EAGAIN;
-				nsl_log(NSL_TCP_BREAK2, skb);
 				break;
 			}
 		}
@@ -1489,7 +1487,6 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 				       "seq %X rcvnxt %X fl %X\n", *seq,
 				       TCP_SKB_CB(skb)->seq, tp->rcv_nxt,
 					 flags)) {
-				nsl_log(NSL_TCP_BREAK3, skb);
 				break;
 			}
 
@@ -1509,7 +1506,6 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Well, if we have backlog, try to process it now yet. */
 
 		if (copied >= target && !sk->sk_backlog.tail) {
-			nsl_log(NSL_TCP_BREAK4, skb);
 			break;
 		}
 
@@ -1519,23 +1515,19 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 			    (sk->sk_shutdown & RCV_SHUTDOWN) ||
 			    !timeo ||
 			    signal_pending(current)) {
-				nsl_log(NSL_TCP_BREAK5, skb);
 				break;
 			}
 		} else {
 			if (sock_flag(sk, SOCK_DONE)) {
-				nsl_log(NSL_TCP_BREAK6, skb);
 				break;
 			}
 
 			if (sk->sk_err) {
 				copied = sock_error(sk);
-				nsl_log(NSL_TCP_BREAK7, skb);
 				break;
 			}
 
 			if (sk->sk_shutdown & RCV_SHUTDOWN) {
-				nsl_log(NSL_TCP_BREAK8, skb);
 				break;
 			}
 
@@ -1545,22 +1537,18 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 					 * from never connected socket.
 					 */
 					copied = -ENOTCONN;
-					nsl_log(NSL_TCP_BREAK9, skb);
 					break;
 				}
-				nsl_log(NSL_TCP_BREAK10, skb);
 				break;
 			}
 
 			if (!timeo) {
 				copied = -EAGAIN;
-				nsl_log(NSL_TCP_BREAK11, skb);
 				break;
 			}
 
 			if (signal_pending(current)) {
 				copied = sock_intr_errno(timeo);
-				nsl_log(NSL_TCP_BREAK12, skb);
 				break;
 			}
 		}
@@ -1607,7 +1595,6 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 			 * unfortunately.
 			 */
 			if (!skb_queue_empty(&tp->ucopy.prequeue)) {
-				nsl_log(NSL_TCP_DO_PREQUEUE, skb);
 				goto do_prequeue;
 			}
 
