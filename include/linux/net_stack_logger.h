@@ -55,6 +55,8 @@ struct nsl_entry {
 	uint16_t tp_dport;
 	uint64_t time;
 	uint64_t id;
+	unsigned int cnt;
+	unsigned long data_len;
 };
 
 #ifdef __KERNEL__
@@ -73,6 +75,11 @@ static inline void nsl_setid(struct sk_buff *skb)
 	skb->id = nsl_gettime();
 }
 
+static inline void nsl_sock_setid(struct sock *sk)
+{
+	sk->id = nsl_gettime();
+}
+
 static inline void nsl_log(unsigned int func, struct sk_buff *skb)
 {
 	int cpu = smp_processor_id();
@@ -82,9 +89,11 @@ static inline void nsl_log(unsigned int func, struct sk_buff *skb)
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
 		nsl_table[cpu][index].func = func;
 		nsl_table[cpu][index].time = nsl_gettime();
+		nsl_table[cpu][index].cnt = 0;
 		if (skb != NULL) {
 			nsl_table[cpu][index].id = skb->id;
 			nsl_table[cpu][index].eth_protocol = skb->protocol;
+			nsl_table[cpu][index].data_len = skb->len;
 			if (skb->protocol == htons(ETH_P_IP) && skb->head) {
 				unsigned int mhdr = skb->mac_header + MAC_HEADER_LEN;
 				struct iphdr *ip = (struct iphdr *)((char *)skb->head + mhdr);
@@ -135,7 +144,9 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		nsl_table[cpu][index].func = func;
 		nsl_table[cpu][index].time = nsl_gettime();
 		if (sk != NULL) {
-			nsl_table[cpu][index].id = 0;
+			nsl_table[cpu][index].id = sk->id;
+			nsl_table[cpu][index].cnt = sk->cnt;
+			nsl_table[cpu][index].data_len = sk->data_len;
 			nsl_table[cpu][index].eth_protocol = 0;
 			nsl_table[cpu][index].ip_protocol  = 0;
 			nsl_table[cpu][index].ip_saddr = inet->inet_saddr;
