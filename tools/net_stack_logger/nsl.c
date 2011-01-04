@@ -58,13 +58,13 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
-			   "tp_sport,tp_dport,time,id\n");
+			   "tp_sport,tp_dport,time,id,cnt,data_len\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			for (j = 0; j < NSL_LOG_SIZE; j++) {
 				if (!nsl_table[i][j].func)
 					break;
 				printf("%d,%d,%d,%d,%d,%s,%s,"
-					   "%d,%d,%llu,%llu\n",
+					   "%d,%d,%llu,%llu,%u,%lu\n",
 					   i, j, nsl_table[i][j].func,
 				       nsl_table[i][j].eth_protocol,
 					   nsl_table[i][j].ip_protocol,
@@ -79,7 +79,9 @@ int main(int argc, char **argv)
 					   ntohs(nsl_table[i][j].tp_sport),
 					   ntohs(nsl_table[i][j].tp_dport),
 					   nsl_table[i][j].time,
-					   nsl_table[i][j].id);
+				           nsl_table[i][j].id,
+				           nsl_table[i][j].cnt,
+				           nsl_table[i][j].data_len);
 			}
 		}
 		close(fd);
