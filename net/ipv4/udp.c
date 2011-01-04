@@ -1140,8 +1140,12 @@ int udp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 try_again:
 	skb = __skb_recv_datagram(sk, flags | (noblock ? MSG_DONTWAIT : 0),
 				  &peeked, &err);
+	sk->cnt++;
+
 	if (!skb)
 		goto out;
+
+	sk->data_len += skb->len;
 
 	ulen = skb->len - sizeof(struct udphdr);
 	if (len > ulen)
