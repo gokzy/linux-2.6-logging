@@ -323,6 +323,10 @@ struct sock {
   	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);  
 	void                    (*sk_destruct)(struct sock *sk);
+
+	__u64                   id;
+	unsigned int            cnt;
+	unsigned long           data_len;
 };
 
 /*
