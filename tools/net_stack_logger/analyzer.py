@@ -43,17 +43,17 @@ if opts.tcp:
 elif opts.udp:
     protocol = IPPROTO_UDP
     head_func = NSL_NETIF_RECEIVE_SKB
-    tail_func = NSL_SKB_COPY
-    func = ["", 'netif_receive_skb', 'enqueue_to_backlog', '__netif_receive_skb',
-            'ip_rcv', 'sk_data_ready', 'skb_dequeue', 'skb_copy', 'to_syscall']
-    tmp = [[] for x in range(8)]
+    tail_func = NSL_END_INET_RECVMSG
+    func = ["", 'RUN_HW_INTERRUPT','WAIT_SW_INTERRUPT','RUN_SW_INTTERRUPT','WAIT_SKB_DEQUEUE',
+            'SKB_COPY','FINISH','HW_INTERRUPT - TO_SYSCALL','HW_INTERRUPT - END_INET_RECVMSG']
+    values = [[] for x in range(8)]
 
 elif opts.sock:
     protocol = '0'
     head_func = NSL_BEGIN_INET_RECVMSG
     tail_func = NSL_END_INET_RECVMSG
     func = ["","begin_inet_recvmsg","end_inet_recvmsg","cnt"]
-    tmp = [[] for x in range(3)]
+    values = [[] for x in range(2)]
 
 
     
@@ -63,64 +63,72 @@ flow = {}
 
 reader = csv.DictReader(sys.stdin)
 
-
 for packet in reader:
     
-    if packet['ip_protocol'] != protocol:
+    if packet['ip_protocol'] != protocol and packet['ip_protocol'] != '0':
         continue
 
-    id = packet['id']
+    id = packet['sock_id' if opts.sock else 'skb_id']
     
     if flow.has_key(id):
-        flow[id].append(packet)
+        flow[id][packet['func']] = packet
     else:
-        flow[id] = [packet]
+        flow[id] = { packet['func'] : packet }
         
+    
     if packet['func'] == tail_func:
-        if flow[id][0]['func'] == head_func:
-            first = flow[id][0]
+        if head_func in flow[id] :
             
-            print "[%s/%s]," % (PROTOS[int(packet['ip_protocol'])], packet['tp_sport' if packet['ip_protocol'] == '0' else 'tp_dport']),
+            print "[%s/%s/%s]," % (PROTOS[int(packet['ip_protocol'])],
+                                   packet['tp_sport' if packet['ip_protocol'] == '0' else 'tp_dport'],
+                                   packet['skb_id']),
 
+
+            prev = flow[id][head_func]
+
+            sorted_keys = sorted( map(int, flow[id].keys() ) )
+            sorted_keys = map(str, sorted_keys)
             
-            for i,p in enumerate(flow[id]):
-                print "%d," % (int(p['time']) - int(first['time'])),
-                tmp[i].append((int(p['time']) - int(first['time'])))
-                first = p
-                i += 1
+            for i, key in enumerate( sorted_keys[1:] ):
+                curr = flow[id][key]
+                period = (int(curr['time']) - int(prev['time']))
+                print "%d," % period,
+                values[i].append(period)
+                prev = curr
 
                 
             if opts.tcp or opts.udp:
-                first = flow[id][0]
-                dequeue = None
+                packets = flow[id]
                 
-                for p in flow[id]:
-                    if p['func'] == NSL_SKB_DEQUEUE:
-                        dequeue = p
-                        break
-                    
-                print "%d," % (int(dequeue['time']) - int(flow[id][0]['time'])),
-                tmp[-1].append((int(dequeue['time']) - int(flow[id][0]['time'])))
+                period = ( int(packets[NSL_SKB_DEQUEUE]['time']) - int(packets[NSL_NETIF_RECEIVE_SKB]['time']) )
+                print "%d," % period,
+                values[6].append(period)
+
+                period = ( int(packets[NSL_END_INET_RECVMSG]['time']) - int(packets[NSL_NETIF_RECEIVE_SKB]['time']) )
+                print "%d," % period,
+                values[7].append(period)
+
+                # period = ( (int(packets[NSL_END_INET_RECVMSG]['time']) - int(packets[NSL_NETIF_RECEIVE_SKB]['time'])) -
+                #            (int(packets[NSL_SKB_DEQUEUE]['time']) - int(packets[NSL_NETIF_RECEIVE_SKB]['time'])))
+                # print "%d," % period,
+                # values[8].append(period)
 
             elif opts.sock:
-                first = flow[id][0]
-                for p in flow[id][1:]:
-                    print "%d," % (int(p['cnt']) - int(first['cnt'])),
-                    tmp[-1].append(int(p['cnt']) - int(first['cnt']))
+                sockets = flow[id]
+                cnt = int( sockets[NSL_END_INET_RECVMSG]['cnt']) - int(sockets[NSL_BEGIN_INET_RECVMSG]['cnt'])
+                print "%d," % cnt,
+                values[1].append(cnt)
+                
                     
             print
                 
         del flow[id]
 
 
-if tmp[-2] == []:
-    func.remove('enqueue_to_backlog')
-    tmp.pop(-2)
-    
 print
 print ','.join(func)
-print "[average],", ', '.join(  map(str, map(numpy.average, tmp) ) )
-print "[median],",  ', '.join(  map(str, map(numpy.median,  tmp) ) )
-print "[max],",     ', '.join(  map(str, map(numpy.max,     tmp) ) )
-print "[min],",     ', '.join(  map(str, map(numpy.min,     tmp) ) )
-print "[varance],", ', '.join(  map(str, map(numpy.var,     tmp) ) )
+print "[average],", ', '.join(  map(str, map(numpy.average, values) ) )
+print "[median],",  ', '.join(  map(str, map(numpy.median,  values) ) )
+print "[max],",     ', '.join(  map(str, map(numpy.max,     values) ) )
+print "[min],",     ', '.join(  map(str, map(numpy.min,     values) ) )
+print "[varance],", ', '.join(  map(str, map(numpy.var,     values) ) )
