@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 		}
 		
 		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
-			   "tp_sport,tp_dport,time,id,cnt,data_len\n");
+			   "tp_sport,tp_dport,time,skb_id,sock_id,cnt,\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			int cur, idx, j;
 			
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 				
 				idx = i * NSL_LOG_SIZE + j;
 				printf("%d,%d,%d,%d,%d,%s,%s,"
-					   "%d,%d,%llu,%llu,%llu,%u,%lu\n",
+					   "%d,%d,%llu,%llu,%llu,%llu,%u,%lu\n",
 					   i, j, nsl_table[idx].func,
 				       nsl_table[idx].eth_protocol,
 					   nsl_table[idx].ip_protocol,
@@ -92,7 +92,8 @@ int main(int argc, char **argv)
 					   ntohs(nsl_table[idx].tp_sport),
 					   ntohs(nsl_table[idx].tp_dport),
 					   nsl_table[idx].time,
-					   nsl_table[idx].id,
+					   nsl_table[idx].skb_id,
+					   nsl_table[idx].sock_id,
 					   nsl_table[idx].pktlen,
 					   nsl_table[idx].cnt,
 					   nsl_table[idx].len);

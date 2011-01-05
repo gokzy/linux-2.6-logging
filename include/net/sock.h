@@ -325,8 +325,9 @@ struct sock {
 	void                    (*sk_destruct)(struct sock *sk);
 
 	__u64                   id;
+	__u64                   skb_id;
 	unsigned int            cnt;
-	unsigned long           data_len;
+	//unsigned long           data_len;
 };
 
 /*

@@ -59,7 +59,8 @@ struct nsl_entry {
 	uint16_t tp_sport;
 	uint16_t tp_dport;
 	uint64_t time;
-	uint64_t id;
+	uint64_t skb_id;
+	uint64_t sock_id;
 	uint64_t pktlen;
 	uint32_t cnt;
 	uint64_t len;
@@ -101,8 +102,9 @@ static inline void _nsl_log(unsigned int func, struct sk_buff *skb,
 		nsl_table[i].time = nsl_gettime();
 		nsl_table[i].cnt = cnt;
 		nsl_table[i].len = len;
+		nsl_table[i].sock_id = 0;
 		if (skb != NULL) {
-			nsl_table[i].id = skb->id;
+			nsl_table[i].skb_id = skb->id;
 			nsl_table[i].eth_protocol = skb->protocol;
 			nsl_table[i].pktlen = skb->len;
 			if (skb->protocol == htons(ETH_P_IP) && skb->head) {
@@ -156,9 +158,10 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		nsl_table[i].func = func;
 		nsl_table[i].time = nsl_gettime();
 		if (sk != NULL) {
-			nsl_table[i].id = sk->id;
+			nsl_table[i].sock_id = sk->id;
+			nsl_table[i].skb_id = sk->skb_id;
 			nsl_table[i].cnt = sk->cnt;
-			nsl_table[i].len = sk->data_len;
+			nsl_table[i].len = 0;
 			nsl_table[i].pktlen = 0;
 			nsl_table[i].eth_protocol = 0;
 			nsl_table[i].ip_protocol  = 0;

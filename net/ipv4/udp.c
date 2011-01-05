@@ -1145,7 +1145,8 @@ try_again:
 	if (!skb)
 		goto out;
 
-	sk->data_len += skb->len;
+	sk->skb_id = skb->id;
+	//sk->data_len += skb->len;
 
 	ulen = skb->len - sizeof(struct udphdr);
 	if (len > ulen)
