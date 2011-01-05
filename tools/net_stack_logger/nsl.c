@@ -7,8 +7,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <linux/net_stack_logger.h>
-
-struct nsl_entry nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+#include <sys/mman.h>
+#include <sys/user.h>
 
 void usage(void)
 {
@@ -23,28 +23,34 @@ int main(int argc, char **argv)
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		int fd = open("nsl0", 0);
+		int ret, fd = open("nsl0", 0);
 		if(fd < 0) {
 			fprintf(stderr, "can't open nsl0\n");
 			return -1;
 		}
-		ioctl(fd, NSL_ENABLE);
+		ret = ioctl(fd, NSL_ENABLE);
 		close(fd);
-
+		if (ret) {
+			fprintf(stderr, "ioctl failed %d\n", ret);
+			return -1;
+		}
 		return 0;
 	}else if (!strcmp(argv[1], "stop")) {
-		int fd = open("nsl0", 0);
+		int ret, fd = open("nsl0", 0);
 		if(fd < 0) {
 			fprintf(stderr, "can't open nsl0\n");
 			return -1;
 		}
-		ioctl(fd, NSL_DISABLE);
+		ret = ioctl(fd, NSL_DISABLE);
 		close(fd);
-
+		if (ret) {
+			fprintf(stderr, "ioctl failed %d\n", ret);
+			return -1;
+		}
 		return 0;
 	}else if (!strcmp(argv[1], "get")) {
-		int fd, index, i, j, ret;
-		char addr[INET_ADDRSTRLEN];
+		int fd, i;
+		struct nsl_entry *nsl_table;
 
 		fd = open("nsl0", 0);
 		if(fd < 0) {
@@ -52,38 +58,47 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		ret = ioctl(fd, NSL_GET_TABLE, (void *)nsl_table);
-		if (ret) {
-			fprintf(stderr, "ioctl failed %d\n", ret);
+		nsl_table = (struct nsl_entry *)mmap(
+			0, NSL_TABLE_SIZE, PROT_READ, MAP_SHARED, fd, 0);
+		if (nsl_table == MAP_FAILED) {
+			fprintf(stderr, "mmap failed\n");
+			close(fd);
 			return -1;
 		}
+		
 		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
 			   "tp_sport,tp_dport,time,id,cnt,data_len\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
-			for (j = 0; j < NSL_LOG_SIZE; j++) {
-				if (!nsl_table[i][j].func)
-					break;
+			int cur, idx, j;
+			
+			cur = ioctl(fd, NSL_GET_INDEX, i);
+			for (j = 0; j <= cur; j++) {
+				char addr[INET_ADDRSTRLEN];
+				
+				idx = i * NSL_LOG_SIZE + j;
 				printf("%d,%d,%d,%d,%d,%s,%s,"
-					   "%d,%d,%llu,%llu,%u,%lu\n",
-					   i, j, nsl_table[i][j].func,
-				       nsl_table[i][j].eth_protocol,
-					   nsl_table[i][j].ip_protocol,
+					   "%d,%d,%llu,%llu,%llu,%u,%lu\n",
+					   i, j, nsl_table[idx].func,
+				       nsl_table[idx].eth_protocol,
+					   nsl_table[idx].ip_protocol,
 					   inet_ntop(AF_INET, 
-								 &nsl_table[i][j].ip_saddr,
+								 &nsl_table[idx].ip_saddr,
 								 addr,
 								 INET_ADDRSTRLEN),
 					   inet_ntop(AF_INET,
-								 &nsl_table[i][j].ip_daddr,
+								 &nsl_table[idx].ip_daddr,
 								 addr,
 								 INET_ADDRSTRLEN),
-					   ntohs(nsl_table[i][j].tp_sport),
-					   ntohs(nsl_table[i][j].tp_dport),
-					   nsl_table[i][j].time,
-				           nsl_table[i][j].id,
-				           nsl_table[i][j].cnt,
-				           nsl_table[i][j].data_len);
+					   ntohs(nsl_table[idx].tp_sport),
+					   ntohs(nsl_table[idx].tp_dport),
+					   nsl_table[idx].time,
+					   nsl_table[idx].id,
+					   nsl_table[idx].pktlen,
+					   nsl_table[idx].cnt,
+					   nsl_table[idx].len);
 			}
 		}
+		munmap(nsl_table, NSL_TABLE_SIZE);
 		close(fd);
 
 		return 0;

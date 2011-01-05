@@ -5,16 +5,14 @@ static int nsl_init_module(void);
 static void nsl_cleanup_module(void);
 static int nsl_open(struct inode *, struct file *);
 static int nsl_release(struct inode *, struct file *);
-static ssize_t nsl_read(struct file *, char __user *, size_t, loff_t *);
-static ssize_t nsl_write(struct file *, const char __user *, size_t, loff_t *);
+static int nsl_mmap(struct file *, struct vm_area_struct *);
 static long nsl_ioctl(struct file *, unsigned int, unsigned long);
 
 static const struct file_operations nsl_fops = {
 	.owner		= THIS_MODULE,
 	.open		= nsl_open,
 	.release	= nsl_release,
-	.read		= nsl_read,
-	.write		= nsl_write,
+	.mmap		= nsl_mmap,
 	.unlocked_ioctl	= nsl_ioctl,
 };
 
@@ -22,16 +20,26 @@ module_init(nsl_init_module);
 module_exit(nsl_cleanup_module);
 
 int nsl_enable = 0;
-struct nsl_entry nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+struct nsl_entry *nsl_table = NULL;
 atomic_t nsl_index[NSL_MAX_CPU];
 
 static int __init nsl_init_module(void)
 {
+	int i;
+	
 	if (register_chrdev(NSL_MAJOR, NSL_DEV_NAME, &nsl_fops)) {
 		printk(KERN_ERR "nsl: unable to get major\n");
 		return -EIO;
+	}	
+	nsl_table = (struct nsl_entry *)vmalloc(NSL_TABLE_SIZE);
+	if (!nsl_table) {
+		printk(KERN_ERR "nsl: unable to allocate memory\n");
+		return -ENOMEM;
 	}
-
+	for (i = 0; i < NSL_TABLE_SIZE; i+= PAGE_SIZE) {
+		SetPageReserved(
+			vmalloc_to_page((void*)(((unsigned long)nsl_table) + i)));
+	}
 	return 0;
 }
 
@@ -50,35 +58,53 @@ static int nsl_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static ssize_t nsl_read(struct file *file, char __user *buf, size_t len, 
-			loff_t *off)
+static int nsl_mmap(struct file *file, struct vm_area_struct *vma)
 {
-	return -EINVAL;
-}
+	int ret;
+	long length = vma->vm_end - vma->vm_start;
+	unsigned long start = vma->vm_start;
+	char *vmalloc_area_ptr = (char *)nsl_table;
+	unsigned long pfn;
 
-static ssize_t nsl_write(struct file *file, const char __user *buf, 
-			 size_t len, loff_t *off)
-{
-	return -EINVAL;
+	/* check length - do not allow larger mappings than the number of
+	   pages allocated */
+	if (length > NSL_TABLE_SIZE) {
+		printk(KERN_ERR "nsl: mmap too large\n");
+		return -EIO;
+	}
+
+	/* loop over all pages, map it page individually */
+	while (length > 0) {
+		pfn = vmalloc_to_pfn(vmalloc_area_ptr);
+		if ((ret = remap_pfn_range(vma, start, pfn, PAGE_SIZE,
+								   PAGE_SHARED)) < 0) {
+			printk(KERN_ERR "nsl: remap_pfn_range failed\n");
+			return ret;
+		}
+		start += PAGE_SIZE;
+		vmalloc_area_ptr += PAGE_SIZE;
+		length -= PAGE_SIZE;
+	}
+	
+	return 0;
 }
 
 static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int i, ret = 0;
-	char __user *argp = compat_ptr(arg);
-
 	switch (cmd) {
-	case NSL_GET_TABLE:
-		if ((ret = copy_to_user(argp, nsl_table, sizeof(nsl_table)))) {
-			printk("copy_to_user failed: %d\n", ret);
-			return -EFAULT;
-		}
+	case NSL_GET_INDEX:
+		if (!nsl_enable)
+			return -1;
+		return atomic_read(&nsl_index[arg]);
 		break;
-	case NSL_ENABLE:
+	case NSL_ENABLE: {
+		int i;
+
 		for (i = 0; i < NSL_MAX_CPU; i++)
 			atomic_set(&nsl_index[i], -1);
 		nsl_enable = 1;
 		break;
+	}
 	case NSL_DISABLE:
 		nsl_enable = 0;
 		break;
@@ -86,5 +112,5 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return -EINVAL;
 	}
 
-	return ret;
+	return 0;
 }

@@ -18,15 +18,20 @@
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
 
-#define NSL_GET_TABLE _IOW(NSL_MAJOR, 1, void *)
+#define NSL_GET_INDEX _IOWR(NSL_MAJOR, 1, unsigned long)
 #define NSL_ENABLE _IO(NSL_MAJOR, 2)
 #define NSL_DISABLE _IO(NSL_MAJOR, 3)
 
 #define NSL_LOG_SIZE 1048576
 #define NSL_MAX_CPU 8
+#define NSL_TABLE_SIZE \
+	(((sizeof(struct nsl_entry) * NSL_LOG_SIZE * NSL_MAX_CPU) & PAGE_MASK) \
+	 + PAGE_SIZE)
 
+#define NSL_POLL	16
 #define NSL_NETIF_RECEIVE_SKB	1
-#define NSL_ENQUEUE_TO_BACKLOG	2
+#define NSL_BACKLOG_ENQUEUED	2
+#define NSL_BACKLOG_DROPPED	15
 #define NSL___NETIF_RECEIVE_SKB	3
 #define NSL_IP_RCV		4
 #define NSL_SK_DATA_READY	5
@@ -55,13 +60,14 @@ struct nsl_entry {
 	uint16_t tp_dport;
 	uint64_t time;
 	uint64_t id;
-	unsigned int cnt;
-	unsigned long data_len;
+	uint64_t pktlen;
+	uint32_t cnt;
+	uint64_t len;
 };
 
 #ifdef __KERNEL__
 extern int nsl_enable;
-extern struct nsl_entry nsl_table[NSL_MAX_CPU][NSL_LOG_SIZE];
+extern struct nsl_entry *nsl_table;
 extern atomic_t nsl_index[];
 extern void __iomem *hpet_virt_address;
 
@@ -80,56 +86,61 @@ static inline void nsl_sock_setid(struct sock *sk)
 	sk->id = nsl_gettime();
 }
 
-static inline void nsl_log(unsigned int func, struct sk_buff *skb)
+#define nsl_log(func, skb) _nsl_log(func, skb, 0, 0)
+
+static inline void _nsl_log(unsigned int func, struct sk_buff *skb,
+						   uint32_t cnt, uint64_t len)
 {
 	int cpu = smp_processor_id();
-	int index;
+	int index, i = cpu * NSL_LOG_SIZE;
 
 	if (nsl_enable &&
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
-		nsl_table[cpu][index].func = func;
-		nsl_table[cpu][index].time = nsl_gettime();
-		nsl_table[cpu][index].cnt = 0;
+		i += index;
+		nsl_table[i].func = func;
+		nsl_table[i].time = nsl_gettime();
+		nsl_table[i].cnt = cnt;
+		nsl_table[i].len = len;
 		if (skb != NULL) {
-			nsl_table[cpu][index].id = skb->id;
-			nsl_table[cpu][index].eth_protocol = skb->protocol;
-			nsl_table[cpu][index].data_len = skb->len;
+			nsl_table[i].id = skb->id;
+			nsl_table[i].eth_protocol = skb->protocol;
+			nsl_table[i].pktlen = skb->len;
 			if (skb->protocol == htons(ETH_P_IP) && skb->head) {
 				unsigned int mhdr = skb->mac_header + MAC_HEADER_LEN;
 				struct iphdr *ip = (struct iphdr *)((char *)skb->head + mhdr);
-				nsl_table[cpu][index].ip_protocol  = ip->protocol;
-				nsl_table[cpu][index].ip_saddr = ip->saddr;
-				nsl_table[cpu][index].ip_daddr = ip->daddr;
-				nsl_table[cpu][index].ip_frag_off = ip->frag_off;
+				nsl_table[i].ip_protocol  = ip->protocol;
+				nsl_table[i].ip_saddr = ip->saddr;
+				nsl_table[i].ip_daddr = ip->daddr;
+				nsl_table[i].ip_frag_off = ip->frag_off;
 				switch (ip->protocol) {
 				case IPPROTO_TCP: {
 					struct tcphdr *tcp = (struct tcphdr *)
 						((char *)skb->head + mhdr + (ip->ihl * 4));
-					nsl_table[cpu][index].tp_sport = tcp->source;
-					nsl_table[cpu][index].tp_dport = tcp->dest;
+					nsl_table[i].tp_sport = tcp->source;
+					nsl_table[i].tp_dport = tcp->dest;
 					break;
 				}
 				case IPPROTO_UDP: {
 					struct udphdr *udp = (struct udphdr *)
 						((char *)skb->head + mhdr + (ip->ihl * 4));
-					nsl_table[cpu][index].tp_sport = udp->source;
-					nsl_table[cpu][index].tp_dport = udp->dest;
+					nsl_table[i].tp_sport = udp->source;
+					nsl_table[i].tp_dport = udp->dest;
 					break;
 				}
 				default:
-					nsl_table[cpu][index].tp_sport = 0;
-					nsl_table[cpu][index].tp_dport = 0;
+					nsl_table[i].tp_sport = 0;
+					nsl_table[i].tp_dport = 0;
 				}
 			}else{
-				nsl_table[cpu][index].ip_protocol = 0;
-				nsl_table[cpu][index].ip_saddr = 0;
-				nsl_table[cpu][index].ip_daddr = 0;
-				nsl_table[cpu][index].ip_frag_off = 0;
-				nsl_table[cpu][index].tp_sport = 0;
-				nsl_table[cpu][index].tp_dport = 0;
+				nsl_table[i].ip_protocol = 0;
+				nsl_table[i].ip_saddr = 0;
+				nsl_table[i].ip_daddr = 0;
+				nsl_table[i].ip_frag_off = 0;
+				nsl_table[i].tp_sport = 0;
+				nsl_table[i].tp_dport = 0;
 			}
 		}else
-			nsl_table[cpu][index].eth_protocol = 0;
+			nsl_table[i].eth_protocol = 0;
 	}
 }
 
@@ -137,24 +148,27 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 {
 	struct inet_sock *inet = inet_sk(sk);
 	int cpu = smp_processor_id();
-	int index;
+	int index, i = cpu * NSL_LOG_SIZE;
 
 	if (nsl_enable &&
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
-		nsl_table[cpu][index].func = func;
-		nsl_table[cpu][index].time = nsl_gettime();
+		i += index;
+		nsl_table[i].func = func;
+		nsl_table[i].time = nsl_gettime();
 		if (sk != NULL) {
-			nsl_table[cpu][index].id = sk->id;
-			nsl_table[cpu][index].cnt = sk->cnt;
-			nsl_table[cpu][index].data_len = sk->data_len;
-			nsl_table[cpu][index].eth_protocol = 0;
-			nsl_table[cpu][index].ip_protocol  = 0;
-			nsl_table[cpu][index].ip_saddr = inet->inet_saddr;
-			nsl_table[cpu][index].ip_daddr = inet->inet_daddr;
-			nsl_table[cpu][index].ip_frag_off = 0;
-			nsl_table[cpu][index].tp_sport = inet->inet_sport;
-			nsl_table[cpu][index].tp_dport = inet->inet_dport;
+			nsl_table[i].id = sk->id;
+			nsl_table[i].cnt = sk->cnt;
+			nsl_table[i].len = sk->data_len;
+			nsl_table[i].pktlen = 0;
+			nsl_table[i].eth_protocol = 0;
+			nsl_table[i].ip_protocol  = 0;
+			nsl_table[i].ip_saddr = inet->inet_saddr;
+			nsl_table[i].ip_daddr = inet->inet_daddr;
+			nsl_table[i].ip_frag_off = 0;
+			nsl_table[i].tp_sport = inet->inet_sport;
+			nsl_table[i].tp_dport = inet->inet_dport;
 		}
 	}
 }
+
 #endif

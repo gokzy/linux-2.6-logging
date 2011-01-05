@@ -2563,6 +2563,7 @@ enqueue:
 			__skb_queue_tail(&sd->input_pkt_queue, skb);
 			input_queue_tail_incr_save(sd, qtail);
 			rps_unlock(sd);
+			_nsl_log(NSL_BACKLOG_ENQUEUED, skb, skb_queue_len(&sd->input_pkt_queue), 0);
 			local_irq_restore(flags);
 			return NET_RX_SUCCESS;
 		}
@@ -2579,7 +2580,7 @@ enqueue:
 
 	sd->dropped++;
 	rps_unlock(sd);
-
+	_nsl_log(NSL_BACKLOG_DROPPED, skb, skb_queue_len(&sd->input_pkt_queue), 0);
 	local_irq_restore(flags);
 
 	atomic_long_inc(&skb->dev->rx_dropped);
@@ -3068,8 +3069,6 @@ int netif_receive_skb(struct sk_buff *skb)
 		if (cpu >= 0) {
 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
 			rcu_read_unlock();
-
-			nsl_log(NSL_ENQUEUE_TO_BACKLOG, skb);
 		} else {
 			rcu_read_unlock();
 			ret = __netif_receive_skb(skb);

@@ -28,6 +28,7 @@
 
 #include "e1000.h"
 #include <net/ip6_checksum.h>
+#include <linux/net_stack_logger.h>
 
 char e1000_driver_name[] = "e1000";
 static char e1000_driver_string[] = "Intel(R) PRO/1000 Network Driver";
@@ -3989,6 +3990,8 @@ static bool e1000_clean_rx_irq(struct e1000_adapter *adapter,
 
 		skb_put(skb, length);
 
+		_nsl_log(NSL_POLL, skb, cleaned_count, length);
+		
 		/* Receive Checksum Offload */
 		e1000_rx_checksum(adapter,
 				  (u32)(status) |
