@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 		}
 		
 		printf("cpu,seq,func,eth_protocol,ip_protocol,ip_saddr,ip_daddr,"
-			   "tp_sport,tp_dport,time,skb_id,sock_id,cnt,\n");
+			   "tp_sport,tp_dport,time,skb_id,sock_id,pkglen,cnt,len\n");
 		for (i = 0; i < NSL_MAX_CPU; i++) {
 			int cur, idx, j;
 			
