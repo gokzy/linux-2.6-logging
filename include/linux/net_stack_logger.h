@@ -47,6 +47,8 @@
 #define NSL_BEGIN_INET_RECVMSG 13
 #define NSL_END_INET_RECVMSG 14
 
+#define NSL_SCHEDULE 15
+
 #define MAC_HEADER_LEN 14
 
 struct nsl_entry {
@@ -174,4 +176,29 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 	}
 }
 
+static inline void nsl_log_switch(unsigned int func, pid_t prev,
+								  pid_t next, int switches)
+{
+	int cpu = smp_processor_id();
+	int index, i = cpu * NSL_LOG_SIZE;
+
+	if (nsl_enable &&
+	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
+		i += index;
+		nsl_table[i].func = func;
+		nsl_table[i].time = nsl_gettime();
+		nsl_table[i].sock_id = prev;
+		nsl_table[i].skb_id = next;
+		nsl_table[i].cnt = switches;
+		nsl_table[i].len = 0;
+		nsl_table[i].pktlen = 0;
+		nsl_table[i].eth_protocol = 0;
+		nsl_table[i].ip_protocol  = 0;
+		nsl_table[i].ip_saddr = 0;
+		nsl_table[i].ip_daddr = 0;
+		nsl_table[i].ip_frag_off = 0;
+		nsl_table[i].tp_sport = 0;
+		nsl_table[i].tp_dport = 9;
+	}
+}
 #endif
