@@ -15,6 +15,9 @@
 #include <net/ip.h>
 #endif
 
+#define NSL_ENABLE_NETWORK
+//#define NSL_ENABLE_PROCESS
+
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
 
@@ -89,6 +92,7 @@ static inline void nsl_sock_setid(struct sock *sk)
 	sk->id = nsl_gettime();
 }
 
+#ifdef NSL_ENABLE_NETWORK
 #define nsl_log(func, skb) _nsl_log(func, skb, 0, 0)
 
 static inline void _nsl_log(unsigned int func, struct sk_buff *skb,
@@ -175,7 +179,13 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		}
 	}
 }
+#else
+#define nsl_log(func, skb)
+#define _nsl_log(func, skb)
+#define nsl_log_sk(func, sk)
+#endif
 
+#ifdef NSL_ENABLE_PROCESS
 static inline void nsl_log_switch(unsigned int func, pid_t prev,
 								  pid_t next, int switches)
 {
@@ -201,4 +211,7 @@ static inline void nsl_log_switch(unsigned int func, pid_t prev,
 		nsl_table[i].tp_dport = 9;
 	}
 }
+#else
+#define nsl_log_switch(func, prev, next, swiches)
+#endif
 #endif

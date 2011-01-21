@@ -72,6 +72,7 @@ int main(int argc, char **argv)
 			int cur, idx, j;
 			
 			cur = ioctl(fd, NSL_GET_INDEX, i);
+			printf("cur:%d\n", cur);
 			for (j = 0; j <= cur; j++) {
 				char addr[INET_ADDRSTRLEN];
 				
