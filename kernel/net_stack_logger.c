@@ -92,11 +92,14 @@ static int nsl_mmap(struct file *file, struct vm_area_struct *vma)
 static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case NSL_GET_INDEX:
+	case NSL_GET_INDEX: {
+		int index;
 		if (!nsl_enable)
 			return -1;
-		return atomic_read(&nsl_index[arg]);
+		index = atomic_read(&nsl_index[arg]);
+		return index < NSL_LOG_SIZE ? index : NSL_LOG_SIZE - 1;
 		break;
+	}
 	case NSL_ENABLE: {
 		int i;
 
