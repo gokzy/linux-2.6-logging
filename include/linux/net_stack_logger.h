@@ -69,6 +69,8 @@ struct nsl_entry {
 	uint64_t pktlen;
 	uint32_t cnt;
 	uint64_t len;
+	uint32_t receive_qlen;
+	uint32_t backlog_qlen;
 };
 
 #ifdef __KERNEL__
@@ -93,10 +95,11 @@ static inline void nsl_sock_setid(struct sock *sk)
 }
 
 #ifdef NSL_ENABLE_NETWORK
-#define nsl_log(func, skb) _nsl_log(func, skb, 0, 0)
+#define nsl_log(func, skb) __nsl_log(func, skb, 0, 0, 0, 0)
+#define _nsl_log(func, skb, cnt, len) __nsl_log(func, skb, cnt, len, 0, 0)
 
-static inline void _nsl_log(unsigned int func, struct sk_buff *skb,
-						   uint32_t cnt, uint64_t len)
+static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
+			     uint32_t cnt, uint64_t len, uint32_t receive_qlen, uint32_t backlog_qlen)
 {
 	int cpu = smp_processor_id();
 	int index, i = cpu * NSL_LOG_SIZE;
@@ -109,6 +112,8 @@ static inline void _nsl_log(unsigned int func, struct sk_buff *skb,
 		nsl_table[i].cnt = cnt;
 		nsl_table[i].len = len;
 		nsl_table[i].sock_id = 0;
+		nsl_table[i].receive_qlen = receive_qlen;
+		nsl_table[i].backlog_qlen = backlog_qlen;
 		if (skb != NULL) {
 			nsl_table[i].skb_id = skb->id;
 			nsl_table[i].eth_protocol = skb->protocol;
@@ -176,6 +181,8 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 			nsl_table[i].ip_frag_off = 0;
 			nsl_table[i].tp_sport = inet->inet_sport;
 			nsl_table[i].tp_dport = inet->inet_dport;
+			nsl_table[i].receive_qlen = sk->sk_receive_queue.qlen;
+			nsl_table[i].backlog_qlen = sk->sk_backlog.len;
 		}
 	}
 }
