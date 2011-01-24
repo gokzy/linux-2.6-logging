@@ -1709,12 +1709,16 @@ do_prequeue:
 			{
 				err = skb_copy_datagram_iovec(skb, offset,
 						msg->msg_iov, used);
+
+				__nsl_log(NSL_SKB_COPY, skb, sk->cnt, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 				if (err) {
 					/* Exception. Bailout! */
 					if (!copied)
 						copied = -EFAULT;
 					break;
 				}
+
+
 			}
 		}
 
@@ -1723,7 +1727,7 @@ do_prequeue:
 		len -= used;
 
 		tcp_rcv_space_adjust(sk);
-		nsl_log(NSL_SKB_COPY, skb);
+
 skip_copy:
 		if (tp->urg_data && after(tp->copied_seq, tp->urg_seq)) {
 			tp->urg_data = 0;
@@ -1737,7 +1741,7 @@ skip_copy:
 		if (!(flags & MSG_PEEK)) {
 			sk_eat_skb(sk, skb, copied_early);
 			copied_early = 0;
-			__nsl_log(NSL_SKB_DEQUEUE, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+			__nsl_log(NSL_SKB_DEQUEUE, skb, sk->cnt, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 		}
 		continue;
 

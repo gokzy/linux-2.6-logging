@@ -4336,6 +4336,7 @@ static void tcp_ofo_queue(struct sock *sk)
 
 		__skb_unlink(skb, &tp->out_of_order_queue);
 		__skb_queue_tail(&sk->sk_receive_queue, skb);
+		__nsl_log(NSL_SK_DATA_READY_OFO, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 		tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 		if (tcp_hdr(skb)->fin)
 			tcp_fin(skb, sk, tcp_hdr(skb));

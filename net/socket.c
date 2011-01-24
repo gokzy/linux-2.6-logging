@@ -105,6 +105,8 @@
 #include <linux/sockios.h>
 #include <linux/atalk.h>
 
+#include <linux/net_stack_logger.h>
+
 static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
 static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
 			 unsigned long nr_segs, loff_t pos);
@@ -484,6 +486,8 @@ static struct socket *sock_alloc(void)
 	inode->i_gid = current_fsgid();
 
 	percpu_add(sockets_in_use, 1);
+
+	nsl_sock_setid(sock);
 	return sock;
 }
 

@@ -758,7 +758,7 @@ int inet_recvmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 	int addr_len = 0;
 	int err;
 
-	nsl_sock_setid(sk);
+	//nsl_sock_setid(sk);
 	sk->cnt = 0;
 	sk->skb_id = 0;
 	//sk->data_len = 0;
