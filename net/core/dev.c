@@ -3048,7 +3048,6 @@ out:
  */
 int netif_receive_skb(struct sk_buff *skb)
 {
-	nsl_setid(skb);
 	nsl_log(NSL_NETIF_RECEIVE_SKB, skb);
 
 	if (netdev_tstamp_prequeue)
@@ -3270,6 +3269,7 @@ __napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 
 gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 {
+	nsl_log(NSL_NAPI_SKB_FINISH, skb);
 	switch (ret) {
 	case GRO_NORMAL:
 		if (netif_receive_skb(skb))
@@ -3308,6 +3308,9 @@ EXPORT_SYMBOL(skb_gro_reset_offset);
 
 gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
+	nsl_setid(skb);
+	nsl_log(NSL_NAPI_GRO_RECEIVE, skb);
+
 	skb_gro_reset_offset(skb);
 
 	return napi_skb_finish(__napi_gro_receive(napi, skb), skb);

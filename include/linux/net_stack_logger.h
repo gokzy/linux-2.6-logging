@@ -31,13 +31,18 @@
 	(((sizeof(struct nsl_entry) * NSL_LOG_SIZE * NSL_MAX_CPU) & PAGE_MASK) \
 	 + PAGE_SIZE)
 
+
 #define NSL_POLL	16
+
+#define NSL_NAPI_GRO_RECEIVE 17
+#define NSL_NAPI_SKB_FINISH  18
 #define NSL_NETIF_RECEIVE_SKB	1
 #define NSL_BACKLOG_ENQUEUED	2
 #define NSL_BACKLOG_DROPPED	15
 #define NSL___NETIF_RECEIVE_SKB	3
 #define NSL_IP_RCV		4
 #define NSL_SK_DATA_READY	5
+#define NSL_SK_DATA_READY_OFO	19
 #define NSL_SKB_DEQUEUE		6
 #define NSL_SKB_COPY		7
 
