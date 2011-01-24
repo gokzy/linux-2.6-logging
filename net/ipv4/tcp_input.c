@@ -5372,6 +5372,7 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 				/* Bulk data transfer: receiver */
 				__skb_pull(skb, tcp_header_len);
 				__skb_queue_tail(&sk->sk_receive_queue, skb);
+				__nsl_log(NSL_SK_DATA_READY, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 				skb_set_owner_r(skb, sk);
 				tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 			}
@@ -5397,7 +5398,6 @@ no_ack:
 			if (eaten)
 				__kfree_skb(skb);
 			else {
-				nsl_log(NSL_SK_DATA_READY, skb);
 				sk->sk_data_ready(sk, 0);
 			}
 			return 0;

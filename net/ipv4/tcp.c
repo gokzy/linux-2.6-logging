@@ -1478,7 +1478,6 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Next get a buffer. */
 
 		skb_queue_walk(&sk->sk_receive_queue, skb) {
-			nsl_log(NSL_SKB_DEQUEUE, skb);
 
 			/* if(skb){ */
 			/* 	//printk(KERN_INFO "[dequeu] cnt %d : skb->len %u, skb->data_len %u",sk->cnt,skb->len,skb->data_len); */
@@ -1738,6 +1737,7 @@ skip_copy:
 		if (!(flags & MSG_PEEK)) {
 			sk_eat_skb(sk, skb, copied_early);
 			copied_early = 0;
+			__nsl_log(NSL_SKB_DEQUEUE, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 		}
 		continue;
 
