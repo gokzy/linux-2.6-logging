@@ -3989,7 +3989,7 @@ static bool e1000_clean_rx_irq(struct e1000_adapter *adapter,
 		e1000_check_copybreak(netdev, buffer_info, length, &skb);
 
 		skb_put(skb, length);
-
+		skb->flags = 0;
 		_nsl_log(NSL_POLL, skb, cleaned_count, length);
 		
 		/* Receive Checksum Offload */

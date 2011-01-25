@@ -610,6 +610,7 @@ static inline void __sk_add_backlog(struct sock *sk, struct sk_buff *skb)
 {
 	/* dont let skb dst not refcounted, we are going to leave rcu lock */
 	skb_dst_force(skb);
+	skb->flags = 1;
 
 	if (!sk->sk_backlog.tail)
 		sk->sk_backlog.head = skb;
@@ -635,7 +636,7 @@ static inline __must_check int sk_add_backlog(struct sock *sk, struct sk_buff *s
 {
 	if (sk_rcvqueues_full(sk, skb))
 		return -ENOBUFS;
-
+	
 	__sk_add_backlog(sk, skb);
 	sk->sk_backlog.len += skb->truesize;
 	return 0;

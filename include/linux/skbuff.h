@@ -414,6 +414,7 @@ struct sk_buff {
 	unsigned int		truesize;
 	atomic_t		users;
 	__u64			id;
+	__u32                   flags; // bit 1 : backlog
 };
 
 #ifdef __KERNEL__

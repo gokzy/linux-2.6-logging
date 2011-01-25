@@ -327,7 +327,7 @@ int sock_queue_rcv_skb(struct sock *sk, struct sk_buff *skb)
 	spin_unlock_irqrestore(&list->lock, flags);
 
 	if (!sock_flag(sk, SOCK_DEAD)){
-		nsl_log(NSL_SK_DATA_READY, skb);
+		__nsl_log(NSL_SK_DATA_READY, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 		sk->sk_data_ready(sk, skb_len);
 	}
 
@@ -1594,6 +1594,8 @@ static void __release_sock(struct sock *sk)
 
 		do {
 			struct sk_buff *next = skb->next;
+
+			__nsl_log(NSL_BACKLOG_DEQUEUE, next, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 
 			WARN_ON_ONCE(skb_dst_is_noref(skb));
 			skb->next = NULL;

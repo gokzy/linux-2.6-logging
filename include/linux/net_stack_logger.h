@@ -1,3 +1,6 @@
+#ifndef _NET_STACK_LOGGER
+#define _NET_STACK_LOGGER
+
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/ioctl.h>
@@ -14,6 +17,7 @@
 #include <asm/atomic.h>
 #include <net/ip.h>
 #endif
+
 
 #define NSL_ENABLE_NETWORK
 //#define NSL_ENABLE_PROCESS
@@ -46,6 +50,15 @@
 #define NSL_SKB_DEQUEUE		6
 #define NSL_SKB_COPY		7
 
+
+#define NSL_PREQUEUE_ENQUEUE 20
+#define NSL_PREQUEUE_DEQUEUE 21
+#define NSL_ADD_BACKLOG 22
+#define NSL_BACKLOG_DEQUEUE 23
+#define NSL_NOT_EATEN_SKB_ENQUEUE 24
+#define NSL_NOT_SKB_DEQUEUE 25
+#define NSL_QUEUE_AND_OUT 26
+
 #define NSL_TCP_FOUND_FIN_OK 8
 #define NSL_TCP_BEFORE_CLEANUP_RBUF 9
 #define NSL_TCP_AFTER_CLEANUP_RBUF 10
@@ -76,6 +89,7 @@ struct nsl_entry {
 	uint64_t len;
 	uint32_t receive_qlen;
 	uint32_t backlog_qlen;
+	uint32_t flags;
 };
 
 #ifdef __KERNEL__
@@ -120,6 +134,7 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 		nsl_table[i].receive_qlen = receive_qlen;
 		nsl_table[i].backlog_qlen = backlog_qlen;
 		if (skb != NULL) {
+			nsl_table[i].flags = skb->flags;
 			nsl_table[i].skb_id = skb->id;
 			nsl_table[i].eth_protocol = skb->protocol;
 			nsl_table[i].pktlen = skb->len;
@@ -227,3 +242,5 @@ static inline void nsl_log_switch(unsigned int func, pid_t prev,
 #define nsl_log_switch(func, prev, next, swiches)
 #endif
 #endif
+
+#endif //NET_STACK_LOGGER

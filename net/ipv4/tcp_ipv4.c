@@ -82,6 +82,8 @@
 #include <linux/crypto.h>
 #include <linux/scatterlist.h>
 
+#include <linux/net_stack_logger.h>
+
 int sysctl_tcp_tw_reuse __read_mostly;
 int sysctl_tcp_low_latency __read_mostly;
 EXPORT_SYMBOL(sysctl_tcp_low_latency);
@@ -1702,6 +1704,8 @@ process:
 		NET_INC_STATS_BH(net, LINUX_MIB_TCPBACKLOGDROP);
 		goto discard_and_relse;
 	}
+	__nsl_log(NSL_ADD_BACKLOG, skb, 0, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+
 	bh_unlock_sock(sk);
 
 	sock_put(sk);

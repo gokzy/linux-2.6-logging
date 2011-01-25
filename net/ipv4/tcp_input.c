@@ -4416,6 +4416,7 @@ queue_and_out:
 
 			skb_set_owner_r(skb, sk);
 			__skb_queue_tail(&sk->sk_receive_queue, skb);
+			__nsl_log(NSL_QUEUE_AND_OUT, skb, 0, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 		}
 		tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 		if (skb->len)
@@ -5327,8 +5328,11 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 				    sock_owned_by_user(sk) && !copied_early) {
 					__set_current_state(TASK_RUNNING);
 
-					if (!tcp_copy_to_iovec(sk, skb, tcp_header_len))
+					if (!tcp_copy_to_iovec(sk, skb, tcp_header_len)){
+						__nsl_log(NSL_PREQUEUE_DEQUEUE, skb, 0, sk->id,
+							  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 						eaten = 1;
+					}
 				}
 				if (eaten) {
 					/* Predicted packet is in window by definition.
@@ -5373,7 +5377,6 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 				/* Bulk data transfer: receiver */
 				__skb_pull(skb, tcp_header_len);
 				__skb_queue_tail(&sk->sk_receive_queue, skb);
-				__nsl_log(NSL_SK_DATA_READY, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 				skb_set_owner_r(skb, sk);
 				tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 			}
@@ -5396,11 +5399,18 @@ no_ack:
 				__skb_queue_tail(&sk->sk_async_wait_queue, skb);
 			else
 #endif
-			if (eaten)
-				__kfree_skb(skb);
-			else {
-				sk->sk_data_ready(sk, 0);
+			{
+				if (eaten){
+					__nsl_log(NSL_NOT_EATEN_SKB_ENQUEUE, skb, 0, 0, 
+						  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+					__kfree_skb(skb);
+				}
+				else {
+					__nsl_log(NSL_SK_DATA_READY, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+					sk->sk_data_ready(sk, 0);
+				}
 			}
+			
 			return 0;
 		}
 	}

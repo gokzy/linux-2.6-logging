@@ -3308,6 +3308,7 @@ EXPORT_SYMBOL(skb_gro_reset_offset);
 
 gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
+	skb->flags = 0;
 	nsl_setid(skb);
 	nsl_log(NSL_NAPI_GRO_RECEIVE, skb);
 
