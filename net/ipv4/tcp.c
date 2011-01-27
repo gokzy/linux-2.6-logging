@@ -1257,6 +1257,7 @@ static void tcp_prequeue_process(struct sock *sk)
 	 * necessary */
 	local_bh_disable();
 	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
+		skb->flags |= 0b10000;
 		sk_backlog_rcv(sk, skb);
 	}
 	local_bh_enable();
@@ -1415,6 +1416,7 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 	int copied_early = 0;
 	struct sk_buff *skb;
 	u32 urg_hole = 0;
+	int cnt = 0;
 
 	lock_sock(sk);
 
@@ -1462,7 +1464,7 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 	do {
 		u32 offset;
-		sk->cnt++;
+		cnt++;
 
 		/* Are we at urgent data? Stop if we have read anything or have SIGURG pending. */
 		if (tp->urg_data && tp->urg_seq == *seq) {
@@ -1478,11 +1480,6 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Next get a buffer. */
 
 		skb_queue_walk(&sk->sk_receive_queue, skb) {
-
-			/* if(skb){ */
-			/* 	//printk(KERN_INFO "[dequeu] cnt %d : skb->len %u, skb->data_len %u",sk->cnt,skb->len,skb->data_len); */
-			/* 	sk->data_len += skb->len; */
-			/* } */
 
 			/* Now that we have two receive queues this
 			 * shouldn't happen.
@@ -1707,6 +1704,8 @@ do_prequeue:
 			} else
 #endif
 			{
+				nsl_cnt_queue_log(NSL_SYSCALL_PROCESS_START, skb, cnt, sk);
+
 				err = skb_copy_datagram_iovec(skb, offset,
 						msg->msg_iov, used);
 
@@ -1716,7 +1715,7 @@ do_prequeue:
 						copied = -EFAULT;
 					break;
 				}
-				__nsl_log(NSL_SKB_COPY, skb, sk->cnt, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+				nsl_cnt_queue_log(NSL_COPY_SKB_COMPLETE, skb, cnt, sk);
 			}
 		}
 
@@ -1732,14 +1731,13 @@ skip_copy:
 			tcp_fast_path_check(sk);
 		}
 		if (used + offset < skb->len){
-			__nsl_log(NSL_NOT_SKB_DEQUEUE, skb, sk->cnt, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 			continue;
 		}
 
 		if (tcp_hdr(skb)->fin)
 			goto found_fin_ok;
 		if (!(flags & MSG_PEEK)) {
-			__nsl_log(NSL_SKB_DEQUEUE, skb, sk->cnt, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+			nsl_cnt_queue_log(NSL_DEQUEUE_RECEIVE_QUEUE, skb, cnt, sk);
 			sk_eat_skb(sk, skb, copied_early);
 			copied_early = 0;
 		}

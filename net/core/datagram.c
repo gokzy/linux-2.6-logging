@@ -196,7 +196,7 @@ struct sk_buff *__skb_recv_datagram(struct sock *sk, unsigned flags,
 		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
 
 		if (skb){
-			nsl_log(NSL_SKB_DEQUEUE, skb);
+			nsl_cnt_queue_log(NSL_DEQUEUE_RECEIVE_QUEUE, skb, 0, sk);
 			return skb;
 		}
 

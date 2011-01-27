@@ -2563,7 +2563,7 @@ enqueue:
 			__skb_queue_tail(&sd->input_pkt_queue, skb);
 			input_queue_tail_incr_save(sd, qtail);
 			rps_unlock(sd);
-			_nsl_log(NSL_BACKLOG_ENQUEUED, skb, skb_queue_len(&sd->input_pkt_queue), 0);
+			nsl_cnt_log(NSL_RPS_ENQUEUE_BACKLOG, skb, skb_queue_len(&sd->input_pkt_queue));
 			local_irq_restore(flags);
 			return NET_RX_SUCCESS;
 		}
@@ -2580,7 +2580,7 @@ enqueue:
 
 	sd->dropped++;
 	rps_unlock(sd);
-	_nsl_log(NSL_BACKLOG_DROPPED, skb, skb_queue_len(&sd->input_pkt_queue), 0);
+	//_nsl_log(NSL_BACKLOG_DROPPED, skb, skb_queue_len(&sd->input_pkt_queue), 0);
 	local_irq_restore(flags);
 
 	atomic_long_inc(&skb->dev->rx_dropped);
@@ -2901,7 +2901,7 @@ static int __netif_receive_skb(struct sk_buff *skb)
 	int ret = NET_RX_DROP;
 	__be16 type;
 
-	nsl_log(NSL___NETIF_RECEIVE_SKB, skb);
+	nsl_log(NSL_RPS_DEQUEUE_BACKLOG, skb);
 
 	if (!netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3048,7 +3048,7 @@ out:
  */
 int netif_receive_skb(struct sk_buff *skb)
 {
-	nsl_log(NSL_NETIF_RECEIVE_SKB, skb);
+	nsl_log(NSL_GRO_PROCESS, skb);
 
 	if (netdev_tstamp_prequeue)
 		net_timestamp_check(skb);
@@ -3269,7 +3269,6 @@ __napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 
 gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 {
-	nsl_log(NSL_NAPI_SKB_FINISH, skb);
 	switch (ret) {
 	case GRO_NORMAL:
 		if (netif_receive_skb(skb))
@@ -3308,9 +3307,7 @@ EXPORT_SYMBOL(skb_gro_reset_offset);
 
 gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
-	skb->flags = 0;
-	nsl_setid(skb);
-	nsl_log(NSL_NAPI_GRO_RECEIVE, skb);
+	nsl_log(NSL_POLLING, skb);
 
 	skb_gro_reset_offset(skb);
 

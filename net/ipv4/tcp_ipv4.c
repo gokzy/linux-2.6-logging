@@ -1551,6 +1551,9 @@ static __sum16 tcp_v4_checksum_init(struct sk_buff *skb)
 int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 {
 	struct sock *rsk;
+
+	nsl_cnt_queue_log(NSL_TCP_V4_DO_RCV, skb, 0, sk);
+
 #ifdef CONFIG_TCP_MD5SIG
 	/*
 	 * We really want to reject the packet as early as possible
@@ -1629,6 +1632,8 @@ int tcp_v4_rcv(struct sk_buff *skb)
 	int ret;
 	struct net *net = dev_net(skb->dev);
 
+	nsl_log(NSL_TCP_V4_RCV, skb);
+
 	if (skb->pkt_type != PACKET_HOST)
 		goto discard_it;
 
@@ -1699,12 +1704,17 @@ process:
 			if (!tcp_prequeue(sk, skb))
 				ret = tcp_v4_do_rcv(sk, skb);
 		}
-	} else if (unlikely(sk_add_backlog(sk, skb))) {
-		bh_unlock_sock(sk);
-		NET_INC_STATS_BH(net, LINUX_MIB_TCPBACKLOGDROP);
-		goto discard_and_relse;
+	} else {
+		if (unlikely(sk_add_backlog(sk, skb))) {
+			bh_unlock_sock(sk);
+			NET_INC_STATS_BH(net, LINUX_MIB_TCPBACKLOGDROP);
+			goto discard_and_relse;
+		}
+		else{
+			nsl_cnt_queue_log(NSL_TCP_ENQUEUE_BACKLOG, skb, 0, sk);
+		}
 	}
-	__nsl_log(NSL_ADD_BACKLOG, skb, 0, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+
 
 	bh_unlock_sock(sk);
 

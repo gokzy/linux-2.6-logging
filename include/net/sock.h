@@ -325,9 +325,6 @@ struct sock {
 	void                    (*sk_destruct)(struct sock *sk);
 
 	__u64                   id;
-	__u64                   skb_id;
-	unsigned int            cnt;
-	//unsigned long           data_len;
 };
 
 /*
@@ -610,7 +607,7 @@ static inline void __sk_add_backlog(struct sock *sk, struct sk_buff *skb)
 {
 	/* dont let skb dst not refcounted, we are going to leave rcu lock */
 	skb_dst_force(skb);
-	skb->flags = 1;
+	skb->flags |= 0b001;
 
 	if (!sk->sk_backlog.tail)
 		sk->sk_backlog.head = skb;

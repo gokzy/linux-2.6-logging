@@ -1140,13 +1140,9 @@ int udp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 try_again:
 	skb = __skb_recv_datagram(sk, flags | (noblock ? MSG_DONTWAIT : 0),
 				  &peeked, &err);
-	sk->cnt++;
 
 	if (!skb)
 		goto out;
-
-	sk->skb_id = skb->id;
-	//sk->data_len += skb->len;
 
 	ulen = skb->len - sizeof(struct udphdr);
 	if (len > ulen)
@@ -1200,7 +1196,7 @@ try_again:
 	if (flags & MSG_TRUNC)
 		err = ulen;
 
-	nsl_log(NSL_SKB_COPY, skb);
+	nsl_cnt_queue_log(NSL_COPY_SKB_COMPLETE, skb, 0, sk);
 
 out_free:
 	skb_free_datagram_locked(sk, skb);
@@ -1674,6 +1670,7 @@ drop:
 
 int udp_rcv(struct sk_buff *skb)
 {
+	nsl_log(NSL_UDP_RCV, skb);
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 

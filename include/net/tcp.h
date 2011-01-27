@@ -932,8 +932,8 @@ static inline int tcp_prequeue(struct sock *sk, struct sk_buff *skb)
 			inet_csk_reset_xmit_timer(sk, ICSK_TIME_DACK,
 						  (3 * tcp_rto_min(sk)) / 4,
 						  TCP_RTO_MAX);
-		__nsl_log(NSL_PREQUEUE_ENQUEUE, skb, 0, sk->id,
-			  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+		//__nsl_log(NSL_PREQUEUE_ENQUEUE, skb, 0, sk->id,
+		//	  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 	}
 	return 1;
 }

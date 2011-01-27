@@ -3917,7 +3917,8 @@ static bool e1000_clean_rx_irq(struct e1000_adapter *adapter,
 	while (rx_desc->status & E1000_RXD_STAT_DD) {
 		struct sk_buff *skb;
 		u8 status;
-
+		
+		
 		if (*work_done >= work_to_do)
 			break;
 		(*work_done)++;
@@ -3926,6 +3927,9 @@ static bool e1000_clean_rx_irq(struct e1000_adapter *adapter,
 		status = rx_desc->status;
 		skb = buffer_info->skb;
 		buffer_info->skb = NULL;
+
+		nsl_setid(skb);
+		nsl_log(NSL_START_LOGGING, skb);
 
 		prefetch(skb->data - NET_IP_ALIGN);
 
@@ -3989,8 +3993,6 @@ static bool e1000_clean_rx_irq(struct e1000_adapter *adapter,
 		e1000_check_copybreak(netdev, buffer_info, length, &skb);
 
 		skb_put(skb, length);
-		skb->flags = 0;
-		_nsl_log(NSL_POLL, skb, cleaned_count, length);
 		
 		/* Receive Checksum Offload */
 		e1000_rx_checksum(adapter,

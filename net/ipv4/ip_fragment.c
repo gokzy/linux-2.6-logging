@@ -46,6 +46,8 @@
 #include <linux/inet.h>
 #include <linux/netfilter_ipv4.h>
 
+#include <linux/net_stack_logger.h>
+
 /* NOTE. Logic of IP defragmentation is parallel to corresponding IPv6
  * code now. If you change something here, _PLEASE_ update ipv6/reassembly.c
  * as well. Or notify me, at least. --ANK
@@ -464,6 +466,8 @@ found:
 		prev->next = skb;
 	else
 		qp->q.fragments = skb;
+
+	nsl_log(NSL_ENQUEUE_FRAGMENTS, skb);
 
 	dev = skb->dev;
 	if (dev) {

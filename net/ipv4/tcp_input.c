@@ -4336,7 +4336,7 @@ static void tcp_ofo_queue(struct sock *sk)
 
 		__skb_unlink(skb, &tp->out_of_order_queue);
 		__skb_queue_tail(&sk->sk_receive_queue, skb);
-		__nsl_log(NSL_SK_DATA_READY_OFO, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+		nsl_cnt_queue_log(NSL_OFOPATH_DATA_READY, skb, 0, sk);
 		tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 		if (tcp_hdr(skb)->fin)
 			tcp_fin(skb, sk, tcp_hdr(skb));
@@ -4416,7 +4416,7 @@ queue_and_out:
 
 			skb_set_owner_r(skb, sk);
 			__skb_queue_tail(&sk->sk_receive_queue, skb);
-			__nsl_log(NSL_QUEUE_AND_OUT, skb, 0, sk->id, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+			nsl_cnt_queue_log(NSL_SLOWPATH_DATA_READY, skb, 0, sk);
 		}
 		tp->rcv_nxt = TCP_SKB_CB(skb)->end_seq;
 		if (skb->len)
@@ -5329,8 +5329,8 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 					__set_current_state(TASK_RUNNING);
 
 					if (!tcp_copy_to_iovec(sk, skb, tcp_header_len)){
-						__nsl_log(NSL_PREQUEUE_DEQUEUE, skb, 0, sk->id,
-							  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+						//__nsl_log(NSL_PREQUEUE_DEQUEUE, skb, 0, sk->id, 
+						//sk->sk_receive_queue.qlen, sk->sk_backlog.len);
 						eaten = 1;
 					}
 				}
@@ -5369,8 +5369,10 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 
 				tcp_rcv_rtt_measure_ts(sk, skb);
 
-				if ((int)skb->truesize > sk->sk_forward_alloc)
+				if ((int)skb->truesize > sk->sk_forward_alloc){
+					skb->flags |= 0b100;
 					goto step5;
+				}
 
 				NET_INC_STATS_BH(sock_net(sk), LINUX_MIB_TCPHPHITS);
 
@@ -5400,13 +5402,10 @@ no_ack:
 			else
 #endif
 			{
-				if (eaten){
-					__nsl_log(NSL_NOT_EATEN_SKB_ENQUEUE, skb, 0, 0, 
-						  sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+				if (eaten)
 					__kfree_skb(skb);
-				}
 				else {
-					__nsl_log(NSL_SK_DATA_READY, skb, 0, 0, sk->sk_receive_queue.qlen, sk->sk_backlog.len);
+					nsl_cnt_queue_log(NSL_FASTPATH_DATA_READY, skb, 0, sk);
 					sk->sk_data_ready(sk, 0);
 				}
 			}
@@ -5437,6 +5436,7 @@ step5:
 	tcp_urg(sk, skb, th);
 
 	/* step 7: process the segment text */
+
 	tcp_data_queue(sk, skb);
 
 	tcp_data_snd_check(sk);
@@ -5933,6 +5933,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 		}
 		/* Fall through */
 	case TCP_ESTABLISHED:
+
 		tcp_data_queue(sk, skb);
 		queued = 1;
 		break;
