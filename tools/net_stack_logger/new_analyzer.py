@@ -2,6 +2,8 @@
 
 import csv
 import sys
+import numpy
+
 
 NSL_START_LOGGING         = 1
 NSL_POLLING               = 2
@@ -33,15 +35,42 @@ NSL_TCP_OUT                 = 33
 NSL_TCP_RECV_URG            = 34
 
 
-class NoDefineError(Exception):
-    pass
+process_dict = {(1,2) : "POLLING",
+                (2,3) : "GRO_PROCESS",
+                
+                (3,5) : "RPS_GET_CPU",
+                (3,4) : "RPS_ENQUEUE_BACKLOG",
+                (4,5) : "RPS_DEQUEUE_BACKLOG",
+                (5,6) : "STEER_PKT_PROT_FUNK",
+                
+                (6,8) : "DELIVER_TRANSPORT_LAYER",
+                (6,7) : "ENQUEUE_FRAGMENTS",
+                (7,8) : "REASSMBLEY_PROCESS",
+                
+                (8,10)  : "CHOICE_PATH",
+                (10,12) : "FASTPATH_DATA_READY",
+                (10,13) : "SLOWPATH_DATA_READY",
+                (10,14) : "OFOPATH_DATA_READY",
+
+                (8,9)   : "TCP_ENQUEUE_BACKLOG",
+                (9, 11) : "TCP_DEQUEUE_BACKLOG",
+                (11,10) : "START_DATA_READY",
+
+                (12,15) : "START_SYSCALL",
+                (13,15) : "START_SYSCALL",
+                (14,15) : "START_SYSCALL",
+
+                (15,16) : "COPY_SKB_COMPLETE",
+                (16,17) : "DEQUEUE_RECEVE_QUEUE"
+                }
+
 
 class ReceiveFlow(dict):
 
     def __init__(self):
         self.path = []
         self.exit = False
-        self.porcess_span = []
+        self.process_span = []
 
         
     def __setitem__(self, key, val):
@@ -57,8 +86,14 @@ class ReceiveFlow(dict):
             if self.is_complete_data():
                 self.calc_process_span()
                 self.exit = True
-            else:
-                pass
+
+                
+    def is_complete_data(self):
+        for func in self.path:
+            if not func in self.keys():
+                return False
+
+        return True
 
             
     def calc_process_span(self):
@@ -66,8 +101,8 @@ class ReceiveFlow(dict):
 
         for curr_key in self.path[1:]:
             curr = self.__getitem__(curr_key)
-            
-            self.process_span += int(curr['time']) - int(prev['time'])
+
+            self.process_span.append( int(curr['time']) - int(prev['time']) )
             prev = curr
 
 
@@ -77,17 +112,8 @@ class TcpReceiveFlow(ReceiveFlow):
         super(TcpReceiveFlow, self).__init__()
 
     
-    def is_complete_data(self):
-        for func in self.path:
-            if not func in self.keys():
-                return False
-
-        return True
-
-    
     def path_generator(self):
         path = []
-        flow = 0
         
         if NSL_RPS_ENQUEUE_BACKLOG in self.keys():
             path += [1,2,3,4,5,6]
@@ -112,8 +138,27 @@ class TcpReceiveFlow(ReceiveFlow):
 
         path += [15,16,17]
 
-        return path, flow
+        return path
 
+
+    
+def statistical_data(data):
+    for key,val in process_times.items():
+        
+
+        print ",",
+        x = key[0]
+        for y in key[1:]:
+            print process_dict[(x,y)], ",",
+            x = y
+        print
+
+        print "[average],", ', '.join( map(str, map(numpy.average, val) ) )
+        print "[median],",  ', '.join( map(str, map(numpy.median,  val) ) )
+        print "[max],",     ', '.join( map(str, map(numpy.max,     val) ) )
+        print "[min],",     ', '.join( map(str, map(numpy.min,     val) ) )
+        print "[varance],", ', '.join( map(str, map(numpy.var,     val) ) )
+        print
 
 
 flows = {}
@@ -137,10 +182,16 @@ for pkt in reader:
 
         
     if flows[id].exit:
-        process_times[tuple(flows[id].path)] = flows[id].process_span
+        key = tuple(flows[id].path)
+        
+        if key in process_times:
+            for i,ps in enumerate( flows[id].process_span ):
+                process_times[key][i].append( ps )
+        else:
+            process_times[key] = [ [ps] for ps in flows[id].process_span ]
+            
         del flows[id]
-
-for key,val in flows.items():
-    print key
-    print val
+        
+statistical_data(process_times)
+        
 
