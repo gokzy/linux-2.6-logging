@@ -36,39 +36,40 @@
 	 + PAGE_SIZE)
 
 
-#define NSL_POLL	16
+#define NSL_START_LOGGING           1
+#define NSL_POLLING                 2
+#define NSL_GRO_PROCESS             3
+#define NSL_RPS_ENQUEUE_BACKLOG     4
+#define NSL_RPS_DEQUEUE_BACKLOG     5
 
-#define NSL_NAPI_GRO_RECEIVE 17
-#define NSL_NAPI_SKB_FINISH  18
-#define NSL_NETIF_RECEIVE_SKB	1
-#define NSL_BACKLOG_ENQUEUED	2
-#define NSL_BACKLOG_DROPPED	15
-#define NSL___NETIF_RECEIVE_SKB	3
-#define NSL_IP_RCV		4
-#define NSL_SK_DATA_READY	5
-#define NSL_SK_DATA_READY_OFO	19
-#define NSL_SKB_DEQUEUE		6
-#define NSL_SKB_COPY		7
+#define NSL_IP_RCV                  6
+#define NSL_ENQUEUE_FRAGMENTS       7
+
+#define NSL_TCP_V4_RCV              8
+#define NSL_TCP_ENQUEUE_BACKLOG     9
+#define NSL_TCP_V4_DO_RCV           10
+#define NSL_TCP_DEQUEUE_BACKLOG     11
+#define NSL_FASTPATH_DATA_READY     12
+#define NSL_SLOWPATH_DATA_READY     13
+#define NSL_OFOPATH_DATA_READY      14
+#define NSL_SYSCALL_PROCESS_START   15
+#define NSL_COPY_SKB_COMPLETE       16
+#define NSL_DEQUEUE_RECEIVE_QUEUE   17
+
+#define NSL_UDP_RCV 18
+#define NSL_UDP_DATA_READY 19
 
 
-#define NSL_PREQUEUE_ENQUEUE 20
-#define NSL_PREQUEUE_DEQUEUE 21
-#define NSL_ADD_BACKLOG 22
-#define NSL_BACKLOG_DEQUEUE 23
-#define NSL_NOT_EATEN_SKB_ENQUEUE 24
-#define NSL_NOT_SKB_DEQUEUE 25
-#define NSL_QUEUE_AND_OUT 26
+#define NSL_TCP_FOUND_FIN_OK 30
+#define NSL_TCP_BEFORE_CLEANUP_RBUF 31
+#define NSL_TCP_AFTER_CLEANUP_RBUF 32
+#define NSL_TCP_OUT 33
+#define NSL_TCP_RECV_URG 34
 
-#define NSL_TCP_FOUND_FIN_OK 8
-#define NSL_TCP_BEFORE_CLEANUP_RBUF 9
-#define NSL_TCP_AFTER_CLEANUP_RBUF 10
-#define NSL_TCP_OUT 11
-#define NSL_TCP_RECV_URG 12
+#define NSL_BEGIN_INET_RECVMSG 55
+#define NSL_END_INET_RECVMSG 56
 
-#define NSL_BEGIN_INET_RECVMSG 13
-#define NSL_END_INET_RECVMSG 14
-
-#define NSL_SCHEDULE 15
+#define NSL_SCHEDULE 100
 
 #define MAC_HEADER_LEN 14
 
@@ -86,10 +87,8 @@ struct nsl_entry {
 	uint64_t sock_id;
 	uint64_t pktlen;
 	uint32_t cnt;
-	uint64_t len;
 	uint32_t receive_qlen;
 	uint32_t backlog_qlen;
-	uint32_t flags;
 };
 
 #ifdef __KERNEL__
@@ -114,37 +113,38 @@ static inline void nsl_sock_setid(struct sock *sk)
 }
 
 #ifdef NSL_ENABLE_NETWORK
-#define nsl_log(func, skb) __nsl_log(func, skb, 0, 0, 0, 0)
-#define _nsl_log(func, skb, cnt, len) __nsl_log(func, skb, cnt, len, 0, 0)
+#define nsl_log(func, skb)                    __nsl_log(func, skb, 0, NULL)
+#define nsl_cnt_log(func, skb, cnt)           __nsl_log(func, skb, cnt, NULL)
+#define nsl_cnt_queue_log(func, skb, cnt, sk) __nsl_log(func, skb, cnt, sk)
 
 static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
-			     uint32_t cnt, uint64_t len, uint32_t receive_qlen, uint32_t backlog_qlen)
+			     uint32_t cnt, struct sock *sk)
 {
 	int cpu = smp_processor_id();
 	int index, i = cpu * NSL_LOG_SIZE;
 
 	if (nsl_enable &&
 	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
+
 		i += index;
 		nsl_table[i].func = func;
 		nsl_table[i].time = nsl_gettime();
 		nsl_table[i].cnt = cnt;
-		nsl_table[i].len = len;
-		nsl_table[i].sock_id = 0;
-		nsl_table[i].receive_qlen = receive_qlen;
-		nsl_table[i].backlog_qlen = backlog_qlen;
+
 		if (skb != NULL) {
-			nsl_table[i].flags = skb->flags;
 			nsl_table[i].skb_id = skb->id;
 			nsl_table[i].eth_protocol = skb->protocol;
 			nsl_table[i].pktlen = skb->len;
+
 			if (skb->protocol == htons(ETH_P_IP) && skb->head) {
 				unsigned int mhdr = skb->mac_header + MAC_HEADER_LEN;
 				struct iphdr *ip = (struct iphdr *)((char *)skb->head + mhdr);
+
 				nsl_table[i].ip_protocol  = ip->protocol;
 				nsl_table[i].ip_saddr = ip->saddr;
 				nsl_table[i].ip_daddr = ip->daddr;
 				nsl_table[i].ip_frag_off = ip->frag_off;
+
 				switch (ip->protocol) {
 				case IPPROTO_TCP: {
 					struct tcphdr *tcp = (struct tcphdr *)
@@ -164,6 +164,17 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 					nsl_table[i].tp_sport = 0;
 					nsl_table[i].tp_dport = 0;
 				}
+				
+				if(sk != NULL){
+					nsl_table[i].sock_id = sk->id;
+					nsl_table[i].receive_qlen = sk->sk_receive_queue.qlen;
+					nsl_table[i].backlog_qlen = sk->sk_backlog.len;
+				}else{
+					nsl_table[i].sock_id = 0;
+					nsl_table[i].receive_qlen = 0;
+					nsl_table[i].backlog_qlen = 0;
+				}
+
 			}else{
 				nsl_table[i].ip_protocol = 0;
 				nsl_table[i].ip_saddr = 0;
@@ -176,6 +187,7 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 			nsl_table[i].eth_protocol = 0;
 	}
 }
+
 
 static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 {
@@ -190,9 +202,6 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		nsl_table[i].time = nsl_gettime();
 		if (sk != NULL) {
 			nsl_table[i].sock_id = sk->id;
-			nsl_table[i].skb_id = sk->skb_id;
-			nsl_table[i].cnt = sk->cnt;
-			nsl_table[i].len = 0;
 			nsl_table[i].pktlen = 0;
 			nsl_table[i].eth_protocol = 0;
 			nsl_table[i].ip_protocol  = 0;
@@ -206,6 +215,7 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		}
 	}
 }
+
 #else
 #define nsl_log(func, skb)
 #define _nsl_log(func, skb)
