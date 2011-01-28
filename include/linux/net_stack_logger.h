@@ -91,6 +91,8 @@ struct nsl_entry {
 	uint32_t cnt;
 	uint32_t receive_qlen;
 	uint32_t backlog_qlen;
+	uint32_t tcp_seq;
+	uint32_t ip_id;
 };
 
 #ifdef __KERNEL__
@@ -146,6 +148,7 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 				nsl_table[i].ip_saddr = ip->saddr;
 				nsl_table[i].ip_daddr = ip->daddr;
 				nsl_table[i].ip_frag_off = ip->frag_off;
+				nsl_table[i].ip_id       = ip->id;
 
 				switch (ip->protocol) {
 				case IPPROTO_TCP: {
@@ -153,6 +156,7 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 						((char *)skb->head + mhdr + (ip->ihl * 4));
 					nsl_table[i].tp_sport = tcp->source;
 					nsl_table[i].tp_dport = tcp->dest;
+					nsl_table[i].tcp_seq = tcp->seq;
 					break;
 				}
 				case IPPROTO_UDP: {
