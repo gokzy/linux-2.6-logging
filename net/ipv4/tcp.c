@@ -1257,7 +1257,6 @@ static void tcp_prequeue_process(struct sock *sk)
 	 * necessary */
 	local_bh_disable();
 	while ((skb = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
-		skb->flags |= 0b10000;
 		sk_backlog_rcv(sk, skb);
 	}
 	local_bh_enable();
@@ -1482,6 +1481,7 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		/* Next get a buffer. */
 
 		skb_queue_walk(&sk->sk_receive_queue, skb) {
+			nsl_cnt_queue_log(NSL_SYSCALL_PROCESS_START, skb, cnt, sk);
 
 			/* Now that we have two receive queues this
 			 * shouldn't happen.
@@ -1708,7 +1708,6 @@ do_prequeue:
 			} else
 #endif
 			{
-				nsl_cnt_queue_log(NSL_SYSCALL_PROCESS_START, skb, cnt, sk);
 
 				err = skb_copy_datagram_iovec(skb, offset,
 						msg->msg_iov, used);
