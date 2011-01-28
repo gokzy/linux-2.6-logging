@@ -758,14 +758,14 @@ int inet_recvmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 	int addr_len = 0;
 	int err;
 
-	nsl_log_sk(NSL_BEGIN_INET_RECVMSG, sk);
 	sock_rps_record_flow(sk);
+
+	if(sk == 0){
+		nsl_sock_setid(sk);
+	}
 
 	err = sk->sk_prot->recvmsg(iocb, sk, msg, size, flags & MSG_DONTWAIT,
 				   flags & ~MSG_DONTWAIT, &addr_len);
-
-	nsl_log_sk(NSL_END_INET_RECVMSG, sk);
-
 	if (err >= 0)
 		msg->msg_namelen = addr_len;
 	return err;

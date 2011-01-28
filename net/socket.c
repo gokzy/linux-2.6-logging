@@ -487,7 +487,6 @@ static struct socket *sock_alloc(void)
 
 	percpu_add(sockets_in_use, 1);
 
-	nsl_sock_setid(sock);
 	return sock;
 }
 

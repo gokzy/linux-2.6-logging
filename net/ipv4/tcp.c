@@ -1416,7 +1416,9 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 	int copied_early = 0;
 	struct sk_buff *skb;
 	u32 urg_hole = 0;
-	int cnt = 0;
+	u32 cnt = 0;
+
+	nsl_log_sk(NSL_BEGIN_INET_RECVMSG, sk, cnt);
 
 	lock_sock(sk);
 
@@ -1614,6 +1616,8 @@ int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		} else
 			sk_wait_data(sk, &timeo);
 
+		nsl_log_sk(NSL_AFTER_BACKLOG_PROCESS, sk, cnt);
+
 #ifdef CONFIG_NET_DMA
 		tcp_service_net_dma(sk, false);  /* Don't block */
 		tp->ucopy.wakeup = 0;
@@ -1793,12 +1797,16 @@ skip_copy:
 
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
+
+	nsl_log_sk(NSL_END_INET_RECVMSG, sk, cnt);
 	return copied;
 
 out:
 	nsl_log(NSL_TCP_OUT, skb);
 	TCP_CHECK_TIMER(sk);
 	release_sock(sk);
+
+	nsl_log_sk(NSL_END_INET_RECVMSG, sk, cnt);
 	return err;
 
 recv_urg:

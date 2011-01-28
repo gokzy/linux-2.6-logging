@@ -66,8 +66,10 @@
 #define NSL_TCP_OUT 33
 #define NSL_TCP_RECV_URG 34
 
-#define NSL_BEGIN_INET_RECVMSG 55
-#define NSL_END_INET_RECVMSG 56
+#define NSL_BEGIN_INET_RECVMSG 50
+#define NSL_AFTER_BACKLOG_PROCESS 51
+#define NSL_END_INET_RECVMSG   52
+
 
 #define NSL_SCHEDULE 100
 
@@ -189,7 +191,7 @@ static inline void __nsl_log(unsigned int func, struct sk_buff *skb,
 }
 
 
-static inline void nsl_log_sk(unsigned int func, struct sock *sk)
+static inline void nsl_log_sk(unsigned int func, struct sock *sk, uint32_t cnt)
 {
 	struct inet_sock *inet = inet_sk(sk);
 	int cpu = smp_processor_id();
@@ -200,6 +202,8 @@ static inline void nsl_log_sk(unsigned int func, struct sock *sk)
 		i += index;
 		nsl_table[i].func = func;
 		nsl_table[i].time = nsl_gettime();
+		nsl_table[i].cnt  = cnt;
+
 		if (sk != NULL) {
 			nsl_table[i].sock_id = sk->id;
 			nsl_table[i].pktlen = 0;
