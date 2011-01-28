@@ -1313,8 +1313,10 @@ static struct sk_buff **inet_gro_receive(struct sk_buff **head,
 	iph = skb_gro_header_fast(skb, off);
 	if (skb_gro_header_hard(skb, hlen)) {
 		iph = skb_gro_header_slow(skb, hlen, off);
-		if (unlikely(!iph))
+		if (unlikely(!iph)){
+			nsl_log(60, skb);
 			goto out;
+		}
 	}
 
 	proto = iph->protocol & (MAX_INET_PROTOS - 1);
