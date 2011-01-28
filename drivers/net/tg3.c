@@ -56,6 +56,8 @@
 #include <asm/prom.h>
 #endif
 
+#include <linux/net_stack_logger.h>
+
 #define BAR_0	0
 #define BAR_2	2
 
@@ -4503,7 +4505,7 @@ static void tg3_tx(struct tg3_napi *tnapi)
 				 dma_unmap_addr(ri, mapping),
 				 skb_headlen(skb),
 				 PCI_DMA_TODEVICE);
-
+		
 		ri->skb = NULL;
 
 		sw_idx = NEXT_TX(sw_idx);
@@ -4800,6 +4802,10 @@ static int tg3_rx(struct tg3_napi *tnapi, int budget)
 			/* We'll reuse the original ring buffer. */
 			skb = copy_skb;
 		}
+
+		nsl_setid(skb);
+		nsl_log(NSL_START_LOGGING, skb);
+
 
 		if ((tp->tg3_flags & TG3_FLAG_RX_CHECKSUMS) &&
 		    (desc->type_flags & RXD_FLAG_TCPUDP_CSUM) &&
