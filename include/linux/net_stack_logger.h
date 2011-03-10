@@ -21,6 +21,7 @@
 
 #define NSL_ENABLE_NETWORK
 //#define NSL_ENABLE_PROCESS
+#define NSL_ENABLE_IRQ
 
 #define NSL_DEV_NAME "nsl"
 #define NSL_MAJOR 261
@@ -72,6 +73,11 @@
 
 
 #define NSL_SCHEDULE 100
+
+#define NSL_START_IRQ 200
+#define NSL_END_IRQ 201
+#define NSL_START_IPI 202
+#define NSL_END_IPI 203
 
 #define MAC_HEADER_LEN 14
 
@@ -253,12 +259,40 @@ static inline void nsl_log_switch(unsigned int func, pid_t prev,
 		nsl_table[i].ip_daddr = 0;
 		nsl_table[i].ip_frag_off = 0;
 		nsl_table[i].tp_sport = 0;
-		nsl_table[i].tp_dport = 9;
+		nsl_table[i].tp_dport = 0;
 	}
 }
 #else
 #define nsl_log_switch(func, prev, next, swiches)
 #endif
+#endif
+
+#ifdef NSL_ENABLE_IRQ
+static inline void nsl_log_irq(unsigned int func, unsigned irq)
+{
+	int cpu = smp_processor_id();
+	int index, i = cpu * NSL_LOG_SIZE;
+
+	if (nsl_enable &&
+	    (index = atomic_inc_return(&nsl_index[cpu])) < NSL_LOG_SIZE) {
+		i += index;
+		nsl_table[i].func = func;
+		nsl_table[i].time = nsl_gettime();
+		nsl_table[i].sock_id = irq;
+		nsl_table[i].skb_id = 0;
+		nsl_table[i].cnt = 0;
+		nsl_table[i].pktlen = 0;
+		nsl_table[i].eth_protocol = 0;
+		nsl_table[i].ip_protocol  = 0;
+		nsl_table[i].ip_saddr = 0;
+		nsl_table[i].ip_daddr = 0;
+		nsl_table[i].ip_frag_off = 0;
+		nsl_table[i].tp_sport = 0;
+		nsl_table[i].tp_dport = 0;
+	}
+}
+#else
+#define nsl_log_irq(func, irq)
 #endif
 
 #endif //NET_STACK_LOGGER

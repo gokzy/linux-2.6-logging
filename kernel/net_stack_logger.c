@@ -103,6 +103,8 @@ static long nsl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case NSL_ENABLE: {
 		int i;
 
+		if (!nsl_table)
+			return -ENOMEM;
 		for (i = 0; i < NSL_MAX_CPU; i++)
 			atomic_set(&nsl_index[i], -1);
 		nsl_enable = 1;

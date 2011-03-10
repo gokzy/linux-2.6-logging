@@ -7,6 +7,7 @@
 #include <linux/seq_file.h>
 #include <linux/smp.h>
 #include <linux/ftrace.h>
+#include <linux/net_stack_logger.h>
 
 #include <asm/apic.h>
 #include <asm/io_apic.h>
@@ -235,7 +236,7 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 	irq_enter();
 
 	irq = __get_cpu_var(vector_irq)[vector];
-
+	nsl_log_irq(NSL_START_IRQ, irq);
 	if (!handle_irq(irq, regs)) {
 		ack_APIC_irq();
 
@@ -243,7 +244,7 @@ unsigned int __irq_entry do_IRQ(struct pt_regs *regs)
 			pr_emerg("%s: %d.%d No irq handler for vector (irq %d)\n",
 				__func__, smp_processor_id(), vector, irq);
 	}
-
+	nsl_log_irq(NSL_END_IRQ, irq);
 	irq_exit();
 
 	set_irq_regs(old_regs);
@@ -262,12 +263,12 @@ void smp_x86_platform_ipi(struct pt_regs *regs)
 	exit_idle();
 
 	irq_enter();
-
+	nsl_log_irq(NSL_START_IPI, 0);
 	inc_irq_stat(x86_platform_ipis);
 
 	if (x86_platform_ipi_callback)
 		x86_platform_ipi_callback();
-
+	nsl_log_irq(NSL_END_IPI, 0);
 	irq_exit();
 
 	set_irq_regs(old_regs);
